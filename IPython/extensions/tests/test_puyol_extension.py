@@ -68,15 +68,39 @@ LINES = [get_dict('a for a in func(puyol.Student.get(pedro.Student.something.has
                   {QUERY: 'puyol.University',
                    EVAL_FUNC: 'get',
                    EXPRESSION: '',
-                   ARGUMENTS: 'puyol.University.students.count() > '})]
+                   ARGUMENTS: 'puyol.University.students.count() > '}),
+         get_dict('puyol.University.get(puyol.University.students.count() > 5)'
+                  + '.join(puyol.Student, puyol.Student.university_id == puyol.University.id)',
+                  {QUERY: 'puyol.University.get(puyol.University.students.count() > 5)'
+                          + '.join(puyol.Student, puyol.Student.university_id == puyol.University.id)',
+                   ARGUMENTS: ''}),
+         get_dict('puyol.Student.get(',
+                  {QUERY: 'puyol.Student',
+                   EVAL_FUNC: 'get',
+                   EXPRESSION: '',
+                   ARGUMENTS: ''}),
+         get_dict('puyol.Student.get().',
+                  {QUERY: 'puyol.Student.get()',
+                   ARGUMENTS: '.'}),
+         get_dict('puyol.Student.get().something',
+                  {QUERY: 'puyol.Student.get()',
+                   ARGUMENTS: '.something'}),
+         ####### syntax errors ########
+         # we don't want to raise exceptions here because it is much simpler to do so on evaluation
+         get_dict('puyol.Student.get(any()',
+                  {QUERY: 'puyol.Student',
+                   EVAL_FUNC: 'get',
+                   EXPRESSION: '',
+                   ARGUMENTS: 'any()'}),
+         get_dict('puyol.Student.get() == 5',
+                  {QUERY: 'puyol.Student.get()',
+                   ARGUMENTS: ' == 5'})]
 
-################# Syntax Errors #######################
-
-BAD_LINES = [get_dict('puyol.Student.get(refine(',
-                      {QUERY: 'puyol.Student',
-                       EVAL_FUNC: 'get',
-                       EXPRESSION: 'refine',
-                       ARGUMENTS: ''})]
+EXCEPTION_LINES = ['puyol.Student.get(refine(']
+'''
+LINES = [get_dict('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses)',
+                  {QUERY: 'puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses)',
+                   ARGUMENTS: ''})]'''
 
 
 @pytest.fixture
@@ -88,9 +112,10 @@ def parser():
 def line(request):
     return LINES[request.param]
 
-@pytest.fixture(params=range(len(BAD_LINES)))
-def bad_line(request):
-    return BAD_LINES[request.param]
+
+@pytest.fixture(params=range(len(EXCEPTION_LINES)))
+def exception_line(request):
+    return EXCEPTION_LINES[request.param]
 
 
 def test_simple_parsing(parser, line):
@@ -98,8 +123,8 @@ def test_simple_parsing(parser, line):
     assert parser.all_states
     assert parser.get_result() == line.get('expected_result')
 
-def test_error_parsing(parser, bad_line):
-    with pytest.raises(Exception):
-        parser.parse_line(bad_line.get('line'))
 
+def test_exception_parsing(parser, exception_line):
+    with pytest.raises(Exception):
+        parser.parse_line(exception_line)
 

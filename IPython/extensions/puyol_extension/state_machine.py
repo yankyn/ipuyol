@@ -5,6 +5,7 @@ NESTED_FUNCS = ['has', 'any']  # Functions that go inside an expression and allo
 QUERY_FUNCS = ['refine', 'order_by']  # PuyolQuery functions
 SOURCE_FUNCS = ['get']  # Functions that generate a query
 OTHER_FUNCS = ['join']
+PUYOL_EVALABLE_FUNCS = set(SOURCE_FUNCS + OTHER_FUNCS + QUERY_FUNCS)
 PUYOL_FUNCS = set(
     NESTED_FUNCS + QUERY_FUNCS + SOURCE_FUNCS + OTHER_FUNCS)  # All functions that require special treatment in a puyol query.
 # This allows us to find out when the query is ended.
@@ -80,8 +81,10 @@ class PuyolLineParserEvaluationFunctionState(PuyolLineParserState):
     RESULT_NAME = EVAL_FUNC
 
     def handle_token(self, token):
-        if self.result:
+        if self.result and token == '.':
             self.next_state = PuyolLineParserQueryState()
+        elif self.result:
+            raise Exception('syntax error')
         else:
             self._add_token(token)
 
@@ -108,19 +111,23 @@ class PuyolLineParserArgumentsState(PuyolLineParserState):
         super(PuyolLineParserArgumentsState, self).__init__(*args, **kwargs)
         self._func_nest = 0
         self._allow_query = True
+        self._after_query = ''
+
+    def _remove_repeat_from_result(self):
+        for token in reversed(self.repeat_tokens[:-1]):
+            if token in self.result:
+                self.result = self.result[self.result.find(token) + 1:]
 
     def handle_token(self, token):
         if self._func_nest == 0:
             # All functions have been closed, it is either a query, a syntax error or a criterion with a function.
-            if token in PUYOL_FUNCS:
+            if token in PUYOL_EVALABLE_FUNCS:
                 # it is a query, repeat everything.
                 self.repeat_tokens.append(token)
                 if self._allow_query:
                     print 'arguments ended with ), looking for prior query'
                     self.next_state = PuyolLineParserQueryState()
-                    self.result = ''
-                else:
-                    raise Exception('Only a query is allowed and its not a query')
+                    self._remove_repeat_from_result()
             else:
                 # The last set of parenthesis proved to be part of a criterion. No need to repeat anything so far.
                 self.repeat_tokens = []
@@ -150,8 +157,6 @@ class PuyolLineParserArgumentsState(PuyolLineParserState):
             if not self._func_nest:
                 self.repeat_tokens.append(token)
             self._func_nest += 1
-        elif not self._func_nest:
-            self._allow_query = False
 
 
 class PuyolLineParser(object):

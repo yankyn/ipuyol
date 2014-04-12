@@ -4,27 +4,43 @@ import re
 NESTED_FUNCS = ['has', 'any']  # Functions that go inside an expression and allow nesting of each other.
 QUERY_FUNCS = ['refine', 'order_by']  # PuyolQuery functions
 SOURCE_FUNCS = ['get']  # Functions that generate a query
+OTHER_FUNCS = ['join']
 PUYOL_FUNCS = set(
-    NESTED_FUNCS + QUERY_FUNCS + SOURCE_FUNCS)  # All functions that require special treatment in a puyol query.
+    NESTED_FUNCS + QUERY_FUNCS + SOURCE_FUNCS + OTHER_FUNCS)  # All functions that require special treatment in a puyol query.
 # This allows us to find out when the query is ended.
 QUERY_REGEX = re.compile(r'''[\(\)\w+\.('.*?(?<!\\)')(".*?(?<!\\)")]''')
 
+QUERY = 'query'
+EVAL_FUNC = 'evaluation_function'
+EXPRESSION = 'expression'
+ARGUMENTS = 'arguments'
+
 
 class PuyolLineParserState(object):
+    '''
+    Abstract class for a state in the parser's state machine.
+    :
+    '''
 
     RESULT_NAME = None
 
     def __init__(self, result='', log=None):
+        '''
+
+        '''
         self.result = result
         self.log = log
         self.next_state = self
         self.repeat_tokens = []
 
     def handle_token(self, token):
+        '''
+        Receives a token and changes the
+        '''
         raise NotImplementedError()
 
     def is_done(self):
-        return self.next_state != self
+        return self.next_state != self or self.next_state is None
 
     def get_result(self):
         if not self.RESULT_NAME:
@@ -36,12 +52,10 @@ class PuyolLineParserState(object):
 
 
 class PuyolLineParserQueryState(PuyolLineParserState):
+    RESULT_NAME = QUERY
 
-    RESULT_NAME = 'query'
-
-    def __init__(self, remove_last_query_token, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(PuyolLineParserQueryState, self).__init__(*args, **kwargs)
-        self.remove_last_query_token = remove_last_query_token
         self.open_par = 0
 
     def handle_token(self, token):
@@ -57,27 +71,23 @@ class PuyolLineParserQueryState(PuyolLineParserState):
 
         if end_query:
             print 'prior query ended with token %s' % token
-            if self.remove_last_query_token:
-                self.result = self.result[:-1]
             self.next_state = None
         else:
-            self.result = token + self.result
+            self._add_token(token)
 
 
 class PuyolLineParserEvaluationFunctionState(PuyolLineParserState):
-
-    RESULT_NAME = 'evaluation_func'
+    RESULT_NAME = EVAL_FUNC
 
     def handle_token(self, token):
         if self.result:
-            self.next_state = PuyolLineParserQueryState(remove_last_query_token=False)
+            self.next_state = PuyolLineParserQueryState()
         else:
             self._add_token(token)
 
 
 class PuyolLineParserExpressionState(PuyolLineParserState):
-
-    RESULT_NAME = 'expression'
+    RESULT_NAME = EXPRESSION
 
     def handle_token(self, token):
         if token in PUYOL_FUNCS and token not in NESTED_FUNCS:
@@ -92,18 +102,56 @@ class PuyolLineParserExpressionState(PuyolLineParserState):
 
 
 class PuyolLineParserArgumentsState(PuyolLineParserState):
+    RESULT_NAME = ARGUMENTS
 
-    RESULT_NAME = 'arguments'
+    def __init__(self, *args, **kwargs):
+        super(PuyolLineParserArgumentsState, self).__init__(*args, **kwargs)
+        self._func_nest = 0
+        self._allow_query = True
 
     def handle_token(self, token):
-        if token == '(':
-            print 'arguments ended with (, looking for containing expression'
-            self.next_state = PuyolLineParserExpressionState()
-        elif token == ')':
-            print 'arguments ended with ), looking for prior query'
-            self.next_state = PuyolLineParserQueryState(remove_last_query_token=False, result=token)
-        else:
+        if self._func_nest == 0:
+            # All functions have been closed, it is either a query, a syntax error or a criterion with a function.
+            if token in PUYOL_FUNCS:
+                # it is a query, repeat everything.
+                self.repeat_tokens.append(token)
+                if self._allow_query:
+                    print 'arguments ended with ), looking for prior query'
+                    self.next_state = PuyolLineParserQueryState()
+                    self.result = ''
+                else:
+                    raise Exception('Only a query is allowed and its not a query')
+            else:
+                # The last set of parenthesis proved to be part of a criterion. No need to repeat anything so far.
+                self.repeat_tokens = []
+                self._add_token(token)
+
+        if self._func_nest < 0:
+            # There's an open function.
+            if token in PUYOL_FUNCS:
+                # It's an expression, so we need to repeat the last token.
+                print 'arguments ended with (, looking for containing expression'
+                self.next_state = PuyolLineParserExpressionState()
+                self.repeat_tokens.append(token)
+                self.result = self.result[1:]
+            else:
+                # otherwise its a criterion function, there's still no need to repeat anything.
+                self.repeat_tokens = []
+                self._add_token(token)
+
+        if self._func_nest > 0:
+            # we're in a closed function, everything is allowed, repeat everything.
+            self.repeat_tokens.append(token)
             self._add_token(token)
+
+        if token == '(':
+            self._func_nest -= 1
+        elif token == ')':
+            if not self._func_nest:
+                self.repeat_tokens.append(token)
+            self._func_nest += 1
+        elif not self._func_nest:
+            self._allow_query = False
 
 
 class PuyolLineParser(object):
@@ -111,16 +159,17 @@ class PuyolLineParser(object):
     def __init__(self):
         self.state = PuyolLineParserArgumentsState()
         self.all_states = set()
+        self.tokens = []
 
     @staticmethod
     def _get_tokenizer_regex():
         return re.compile(r'''
-            '.*?(?<!\\)' | # single quoted strings or
-            ".*?(?<!\\)" | # double quoted strings or
-            \w+ | # identifier
-            \S | # other characters
-            \
-            ''', re.VERBOSE | re.DOTALL)
+        '.*?(?<!\\)' | # single quoted strings or
+        ".*?(?<!\\)" | # double quoted strings or
+        \w+ | # identifier
+        \S | # other characters
+        \s
+        ''', re.VERBOSE | re.DOTALL)
 
     @staticmethod
     def _get_tokens(regex, text):
@@ -128,31 +177,34 @@ class PuyolLineParser(object):
         tokens.reverse()
         return tokens
 
-    def parse_line(self, text):
-        regex = self.get_tokenizer_regex()
-        tokens = self._get_tokens(regex, text)
-        self.state = None
+    @staticmethod
+    def sanitize(text):
+        text = text.replace('\n', '')
+        text = text.replace('\r', '')
+        return text
 
-        while tokens:
-            token = tokens.pop(0)
-            if self.state:
-                self.state.handle_token(token)
-                if self.state.is_done():
-                    tokens = self.state.repeat_tokens + tokens
-                    self.all_states.add(self.state)
-                    self.state = self.state.next_state
+    def _get_info_from_state(self, token):
+        if self.state:
+            self.state.handle_token(token)
+            if self.state.is_done():
+                self.tokens = self.state.repeat_tokens + self.tokens
+                self.all_states.add(self.state)
+                self.state = self.state.next_state
+
+    def parse_line(self, text):
+        text = self.sanitize(text)
+        regex = self._get_tokenizer_regex()
+        self.tokens = self._get_tokens(regex, text)
+
+        while self.tokens:
+            token = self.tokens.pop(0)
+            self._get_info_from_state(token)
+        if self.state:
+            self.all_states.add(self.state)
+            self.state = None
 
     def get_result(self):
         result = {}
         for state in self.all_states:
             result.update(state.get_result())
-
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses).refine(puyol.Cource.university.has(puyol.university.countries.any(name=5, ')
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has())).join(puyol.Student.courses).refine(puyol.Cource.university.has(puyol.university.countries.any(name=5, ')
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has())).join(puyol.Student.courses).refine(puyo l.Cource.u niversity.h as(puyol .university.countries.any(name=5, ') # this is ok, should only fail on eval
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses).refine(')
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses)')# does not work, no arguments state
-#l = regexp.findall('puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses)') # does not work, no arguments state
-#l = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses).order_by(')
-#l = regexp.findall("[a for a in func(puyol.Student.get(pedro.Student.something.has(name='hello')).join(puyol.Student.courses).order_by(")
-#tokens = regexp.findall('[a for a in func(puyol.Student.get(pedro.Student.something.has()).join(puyol.Student.courses).refine(puyol.Cource.university.has(puyol.university.name == "NAME"  | puyol.university.countries.any(name=5, ')
+        return result

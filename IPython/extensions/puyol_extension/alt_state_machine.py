@@ -25,6 +25,11 @@ class OrmLineParser(object):
         return regex
 
     @classmethod
+    def get_funcs_wit_parenthesis_regex(cls):
+        regex = '|'.join([x + '\(' for x in cls._get_query_function_names()])
+        return regex
+
+    @classmethod
     def get_base_regex(cls):
         regex = '.*(?=' + '|'.join(['\.' + x + '\(' for x in cls._get_query_function_names()]) + ')'
         return regex
@@ -82,22 +87,23 @@ class OrmLineParser(object):
             raise NotQueryException()
         return base_string_parts[0]
 
-    def _validate_func_and_args(self, func_and_args):
-        regex = self.get_funcs_regex()
-        if len(re.findall(regex, func_and_args)) > 1:
+    def validate_func_and_args(self, func_and_args):
+        if len(re.findall(self.get_funcs_regex(), func_and_args)) != 1:
             raise NotQueryException()
-            # TODO: validate more.
+        if len(re.findall(self.get_funcs_wit_parenthesis_regex(), func_and_args)) != 1:
+            raise NotQueryException()
+        # TODO: validate more.
 
-    def _parse_func_and_args(self, func_and_args):
-        func = re.find(self.get_funcs_regex(), func_and_args)
-        parts = func_and_args.split(func_and_args, func)
+    def parse_func_and_args(self, func_and_args):
+        func = re.findall(self.get_funcs_regex(), func_and_args)[0]
+        parts = func_and_args.split(func + '(')
         return func, parts[-1]
 
     def parse(self, line):
         base_string = self.get_base_string(line)
         func_and_args = line[len(base_string):]
-        self._validate_func_and_args(func_and_args)
-        func_str, args = self._parse_func_and_args(func_and_args)
+        self.validate_func_and_args(func_and_args)
+        func_str, args = self.parse_func_and_args(func_and_args)
         base = self.get_base(base_string)
         return base, func_str, args
 

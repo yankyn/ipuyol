@@ -54,10 +54,30 @@ def name_error_line(request):
                                             ('mock_module.BaseMock.get(a = 5)', 'mock_module.BaseMock'),
                                             ('mock_module.BaseMock.get().join(', 'mock_module.BaseMock.get()'),
                                             (
-                                            'mock_module.BaseMock.get(a = 5).join(', 'mock_module.BaseMock.get(a = 5)'),
+                                                'mock_module.BaseMock.get(a = 5).join(',
+                                                'mock_module.BaseMock.get(a = 5)'),
                                             ('mock_module.BaseMock.get(a = 5.join(', 'mock_module.BaseMock.get(a = 5')])
 def test_get_base_string(parser, line, expected):
     assert parser.get_base_string(line) == expected
+
+
+@pytest.mark.parametrize('line', ['.get()', '.get(a=5,', 'get('])
+def test_validate_func_and_args_passes(parser, line):
+    parser.validate_func_and_args(line)
+
+
+@pytest.mark.parametrize('line', ['.get().join(', 'get', 'get.join()'])
+def test_validate_func_and_args_fails(parser, line):
+    with pytest.raises(NotQueryException):
+        parser.validate_func_and_args(line)
+
+
+@pytest.mark.parametrize('line, expected_func, expected_args',
+                         [('.get()', 'get', ')'), ('.get(a=5)', 'get', 'a=5)')])
+def test_get_func_and_args(parser, line, expected_func, expected_args):
+    func, args = parser.parse_func_and_args(line)
+    assert func == expected_func
+    assert args == expected_args
 
 
 def test_class_line_get_base(parser):

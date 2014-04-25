@@ -5,8 +5,10 @@ import mock_module
 
 __author__ = 'USER'
 
-NOT_QUERIES = ['mock_module.SomeLie', 'mock_module.NotBaseMock']
-NAME_ERRORS = ['BaseMock.get()']
+NOT_QUERY_BASES = ['mock_module.SomeLie', 'mock_module.NotBaseMock']
+BASE_NAME_ERRORS = ['BaseMock.get()']
+
+QUERIES = [('mock_module.BaseMock.get()', 'mock_module.BaseMock'), ()]
 
 
 class MockOrmLineParser(OrmLineParser):
@@ -29,20 +31,33 @@ def parser():
 @pytest.fixture
 def parser_with_direct_import():
     from mock_module import BaseMock
+
     namespace = globals()
     namespace = copy.copy(namespace)
     namespace.update(locals())
     return MockOrmLineParser(module=mock_module, namespace=namespace)
 
 
-@pytest.fixture(params=NOT_QUERIES)
+@pytest.fixture(params=NOT_QUERY_BASES)
 def not_query_line(request):
     return request.param
 
 
-@pytest.fixture(params=NAME_ERRORS)
+@pytest.fixture(params=BASE_NAME_ERRORS)
 def name_error_line(request):
     return request.param
+
+
+@pytest.mark.parametrize('line, expected', [('mock_module.BaseMock.get()', 'mock_module.BaseMock'),
+                                            ('mock_module.BaseMock.get(', 'mock_module.BaseMock'),
+                                            ('mock_module.BaseMock.get(a = 5', 'mock_module.BaseMock'),
+                                            ('mock_module.BaseMock.get(a = 5)', 'mock_module.BaseMock'),
+                                            ('mock_module.BaseMock.get().join(', 'mock_module.BaseMock.get()'),
+                                            (
+                                            'mock_module.BaseMock.get(a = 5).join(', 'mock_module.BaseMock.get(a = 5)'),
+                                            ('mock_module.BaseMock.get(a = 5.join(', 'mock_module.BaseMock.get(a = 5')])
+def test_get_base_string(parser, line, expected):
+    assert parser.get_base_string(line) == expected
 
 
 def test_class_line_get_base(parser):

@@ -24,12 +24,17 @@ class OrmLineParser(object):
         regex = '|'.join(cls._get_query_function_names())
         return regex
 
+    @classmethod
+    def get_base_regex(cls):
+        regex = '.*(?=' + '|'.join(['\.' + x + '\(' for x in cls._get_query_function_names()]) + ')'
+        return regex
+
     def _get_query_from_query_string(self, string):
         try:
             # TODO should maybe run in different thread? Should check how evaluation is done in IPython
             base = eval(string, self.namespace)
         except SyntaxError:
-            # Not a full query. Probable a query inside a query. (And this works with union or minus and such)
+            # Not a full query. Probably a query inside a query. (And this works with union or minus and such)
             # TODO sometime in the future we may want to support this. Currently this is just annoying.
             raise NotQueryException()
         return base
@@ -42,7 +47,7 @@ class OrmLineParser(object):
         base = None
 
         if re.match(r'%s\.[a-zA-Z]+' % self.module_name, string):
-            if re.match(r'%s.[a-zA-Z]+\.%s*' % (self.module_name, self._get_main_query_func_name()), string):
+            if re.match(r'%s\.[a-zA-Z]+\.%s.*' % (self.module_name, self._get_main_query_func_name()), string):
                 # Looks like a full query.
                 base = self._get_query_from_query_string(string)
             else:
@@ -55,7 +60,7 @@ class OrmLineParser(object):
 
         elif hasattr(self.module, string.split('.')[0]):
             # Looks like a class, separately imported.
-            if re.match(r'[a-zA-Z]+\.%s*' % self._get_main_query_func_name(), string):
+            if re.match(r'[a-zA-Z]+\.%s.*' % self._get_main_query_func_name(), string):
                 base = self._get_query_from_query_string(string)
             else:
                 if not issubclass(getattr(self.module, string), self._get_base_class()):
@@ -69,18 +74,31 @@ class OrmLineParser(object):
 
         return base
 
-    def parse(self, line):
-        regex = self.get_funcs_regex()
-        non_funcs = re.split(regex, line)
-        funcs = re.findall(regex, line)
-
-        if not funcs or not non_funcs:
+    def get_base_string(self, line):
+        regex = self.get_base_regex()
+        base_string_parts = re.findall(regex, line)
+        if not base_string_parts:
             raise NotQueryException()
+        return base_string_parts[0]
 
-        first_func = funcs[0]
-        last_func = funcs[-1]
+    def _validate_func_and_args(self, func_and_args):
+        regex = self.get_funcs_regex()
+        if len(re.findall(regex, func_and_args)) > 1:
+            raise NotQueryException()
+            # TODO: validate more.
 
-        base = self.get_base(non_funcs[0])
+    def _parse_func_and_args(self, func_and_args):
+        func = re.find(self.get_funcs_regex(), func_and_args)
+        parts = func_and_args.split(func_and_args, func)
+        return func, parts[-1]
+
+    def parse(self, line):
+        base_string = self.get_base_string(line)
+        func_and_args = line[len(base_string):]
+        self._validate_func_and_args(func_and_args)
+        func_str, args = self._parse_func_and_args(func_and_args)
+        base = self.get_base(base_string)
+        return base, func_str, args
 
     # Private Functions
 

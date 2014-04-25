@@ -53,7 +53,8 @@ class OrmLineParser(object):
             else:
                 # Looks like a class, called through the module.
                 class_name = re.sub('%s\.' % self.module_name, '', string)
-                if hasattr(self.module, class_name):
+                if hasattr(self.module, class_name) and issubclass(getattr(self.module, class_name),
+                                                                   self._get_base_class()):
                     base = self._get_query_from_class_name(class_name)
                 else:
                     raise NotQueryException()

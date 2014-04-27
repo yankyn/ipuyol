@@ -1,6 +1,6 @@
 import copy
 import pytest
-from IPython.extensions.puyol_extension.orm_line_parser import OrmLineParser, NotQueryException
+from IPython.extensions.orm_extension.orm_line_parser import OrmLineParser, NotQueryException
 import mock_module
 
 __author__ = 'USER'

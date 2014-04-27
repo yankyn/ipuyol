@@ -1,5 +1,5 @@
 import pytest
-from IPython.extensions.puyol_extension.insane_useless_state_machine import QUERY, EVAL_FUNC, ARGUMENTS, EXPRESSION, PuyolLineParser
+from IPython.extensions.orm_extension.insane_useless_state_machine import QUERY, EVAL_FUNC, ARGUMENTS, EXPRESSION, PuyolLineParser
 
 __author__ = 'USER'
 

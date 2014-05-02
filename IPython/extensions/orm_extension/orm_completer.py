@@ -10,48 +10,58 @@ class OrmQueryAnalyzer(object):
 
 
 class OrmQueryCompleter(object):
+
+    def __init__(self, module, namespace):
+        self.module = module
+        self.namespace = namespace
+
     def get_parser(self):
         raise NotImplementedError()
 
-    def get_query_analyzer(self):
-        raise NotImplementedError()
-
-    def _get_function_completer(self):
+    def get_handler_for_function(self, function):
         raise NotImplementedError()
 
     def suggest(self, line):
         parser = self.get_parser()
         query, function, arguments = parser.parse(line)
-        from_clause = self.get_query_analyzer().get_from_clause(query)
-        inner_completer = self._get_function_completer()
-        return inner_completer.suggest(from_clause, arguments)
+        inner_completer = self.get_handler_for_function(function)
+        if not inner_completer:
+            raise NotQueryException()
+        return inner_completer.suggest(query, arguments)
 
 
-class OrmInnerCompleter(object):
+class OrmFunctionCompleter(object):
+
+    def __init__(self, module, namespace):
+        self.module = module
+        self.namespace = namespace
+
     @staticmethod
     def get_args_types(arguments):
         parsing = 'args'
         kwargs = []
         args = []
+        last_kwarg = False
         for argument in arguments:
-            if re.match('[a-zA-Z]+=.*', argument):
+            if last_kwarg:
+                raise NotQueryException()
+            if re.match('[a-zA-Z]+=.+', argument):
                 # Is a kwarg
                 parsing = 'kwargs'
                 kwargs.append(argument)
             elif parsing == 'args':
                 args.append(argument)
             else:
-                raise NotQueryException()
+                if not last_kwarg:
+                    last_kwarg = argument
         return args, kwargs
 
-    def suggest(self, from_clause, arguments):
+    def suggest(self, query, arguments):
         arguments = arguments.split(',')
         args, kwargs = self.get_args_types(arguments)
-        return self._suggest(from_clause, args, kwargs)
+        return self._suggest(query, args, kwargs)
 
-    def _suggest(self, from_clause, args, kwargs):
+    def _suggest(self, query, args, kwargs):
         # TODO implement different handlers for different function groups.
         # example: join should allow only kwargs that are actually legitimate join arguments.
         raise NotImplementedError()
-
-

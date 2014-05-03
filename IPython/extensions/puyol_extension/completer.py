@@ -133,6 +133,8 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
                 return ['any']
             else:
                 return ['has']
+        else:
+            raise NotQueryException()
 
     @staticmethod
     def suggest_logic_operator_for_mapped_property():

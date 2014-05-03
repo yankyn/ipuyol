@@ -11,7 +11,6 @@ __author__ = 'USER'
 
 
 class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
-
     def get_from_clause(self, query):
         inner_query = query._q
         all_mappers = list(inner_query._join_entities) + [inner_query._entity_zero.entity_zero]
@@ -112,10 +111,9 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
 
     def _suggest(self, query, args, kwargs):
         if kwargs:
+            # Only suggest kwargs
             last_kwarg = kwargs[-1]
             return self.suggest_kwarg(query, last_kwarg)
-            # Only suggest kwargs
-            pass
         else:
             if args:
                 last_arg = args[-1]
@@ -131,7 +129,10 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
         if isinstance(mapped_property, ColumnProperty):
             return ['in_']  # TODO make a puyol function for getting these.
         elif isinstance(mapped_property, RelationshipProperty):
-            return ['has', 'any']
+            if mapped_property.uselist:
+                return ['any']
+            else:
+                return ['has']
 
     @staticmethod
     def suggest_logic_operator_for_mapped_property():

@@ -1,18 +1,9 @@
-import copy
 import pytest
 from IPython.extensions.orm_extension.orm_line_parser import NotQueryException
-from IPython.extensions.puyol_extension.completer import PuyolLikeGetCompleter
 from puyol_tests.fixtures.db_fixtures import *
+from fixtures.parsers import *
 
 __author__ = 'USER'
-
-
-@pytest.fixture
-def get_completer():
-    namespace = globals()
-    namespace = copy.copy(namespace)
-    namespace.update(locals())
-    return PuyolLikeGetCompleter(module=puyol, namespace=namespace)
 
 
 @pytest.mark.parametrize('query, arg, expected_suggestions', [('puyol.Country.get()', '', ['name=', 'id=']),

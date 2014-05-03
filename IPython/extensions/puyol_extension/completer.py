@@ -97,6 +97,10 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
                                                          from_clause))
         return filter(lambda x: last_arg in all_suggestions, all_suggestions)
 
+    @staticmethod
+    def get_criterion_suggestion_variants(suggestions):
+        return map(lambda x: '~' + x, suggestions)
+
     def suggest_criteria(self, query, last_arg):
 
         from_clause = self.analyzer.get_from_clause(query)
@@ -110,11 +114,11 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
                 if mapped_property:
                     suggestions = self.suggest_mapped_property(mapped_property)
             elif self.get_binary_expression(last_arg) is not None:
-                suggestions = self.suggest_logic_operator_for_mapped_property()
+                suggestions = self.suggest_logic_operator_for_complete_criterion()
             else:
                 suggestions = self._get_normal_suggestions(from_clause, last_arg)
 
-        return suggestions
+        return suggestions + self.get_criterion_suggestion_variants(suggestions)
 
     def _suggest(self, query, args, kwargs):
         # TODO remember to suggest ~suggestions if argument is empty.
@@ -145,7 +149,7 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
             raise NotQueryException()
 
     @staticmethod
-    def suggest_logic_operator_for_mapped_property():
+    def suggest_logic_operator_for_complete_criterion():
         return [' | ', ' & ']
 
 

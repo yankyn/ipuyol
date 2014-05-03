@@ -49,6 +49,8 @@ def test_get_mapped_property_none(get_completer_with_direct_import, argument):
 def test_suggest_criteria_flow(db, get_completer_with_direct_import, monkeypatch, argument, expected_result):
     monkeypatch.setattr(get_completer_with_direct_import, 'suggest_inner', lambda x, y: 1)
     monkeypatch.setattr(get_completer_with_direct_import, 'suggest_mapped_property', lambda x: 2)
-    monkeypatch.setattr(get_completer_with_direct_import, 'suggest_logic_operator_for_mapped_property', lambda: 3)
+    monkeypatch.setattr(get_completer_with_direct_import, 'suggest_logic_operator_for_complete_criterion', lambda: 3)
     monkeypatch.setattr(get_completer_with_direct_import, '_get_normal_suggestions', lambda x, y: 0)
+    monkeypatch.setattr(get_completer_with_direct_import, 'get_criterion_suggestion_variants',
+                        lambda x: 0)  # So we ignore variant addition.
     assert get_completer_with_direct_import.suggest_criteria(puyol.Country.get(), argument) == expected_result

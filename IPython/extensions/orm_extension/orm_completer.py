@@ -57,7 +57,7 @@ class OrmFunctionCompleter(object):
         return args, kwargs
 
     def suggest(self, query, arguments):
-        arguments = arguments.split(',')
+        arguments = arguments.split(',')  # TODO user regex split so any/has chains to get split.
         args, kwargs = self.get_args_types(arguments)
         return self._suggest(query, args, kwargs)
 

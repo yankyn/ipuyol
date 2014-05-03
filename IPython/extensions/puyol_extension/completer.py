@@ -10,6 +10,7 @@ __author__ = 'USER'
 
 
 class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
+
     def get_from_clause(self, query):
         inner_query = query._q
         all_mappers = list(inner_query._join_entities) + [inner_query._entity_zero.entity_zero]
@@ -31,20 +32,28 @@ INNER_FUNCS_REGEX = r'|'.join(map(lambda x: '.+\.%s' % x, INNER_FUNCS))
 
 
 class PuyolLikeGetCompleter(OrmFunctionCompleter):
-    def __init__(self, module):
-        OrmFunctionCompleter.__init__(self, module=module)
+    def __init__(self, module, namespace):
+        OrmFunctionCompleter.__init__(self, module=module, namespace=namespace)
         self.analyzer = PuyolLikeQueryAnalyzer()
 
-    def suggest_kwarg(self, query, last_kwarg):
-        mapper = class_mapper(self.analyzer.get_last_join(query))
+    def _get_attributes_for_kwarg(self, query):
+        mapper = self.analyzer.get_last_join(query)
         attributes = mapper.attrs
+        return attributes
+
+    @staticmethod
+    def _get_properties(attributes, attribute_cls):
+        return filter(lambda x: isinstance(x, attribute_cls), attributes)
+
+    def suggest_kwarg(self, query, last_kwarg):
+        attributes = self._get_attributes_for_kwarg(query)
         suggestions = []
 
-        column_properties = filter(lambda x: isinstance(x, ColumnProperty), attributes)
+        column_properties = self._get_properties(attributes, ColumnProperty)
         column_suggestions = map(lambda x: x.key + '=', column_properties)
         suggestions += column_suggestions
 
-        relationship_properties = filter(lambda x: isinstance(x, RelationshipProperty), attributes)
+        relationship_properties = self._get_properties(attributes, RelationshipProperty)
         relationship_suggestions = map(lambda x: x.key + '=', filter(lambda x: not x.uselist, relationship_properties))
         suggestions += relationship_suggestions
 

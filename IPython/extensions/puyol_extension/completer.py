@@ -4,6 +4,7 @@ from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlalchemy.sql.elements import ColumnElement
 from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer, OrmQueryCompleter, OrmFunctionCompleter
+from IPython.extensions.orm_extension.orm_line_parser import NotQueryException
 from IPython.extensions.puyol_extension.parser import PuyolLikeLineParser
 
 __author__ = 'USER'
@@ -46,7 +47,12 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
         return filter(lambda x: isinstance(x, attribute_cls), attributes)
 
     def suggest_kwarg(self, query, last_kwarg):
-        attributes = self._get_attributes_for_kwarg(query)
+
+        try:
+            attributes = self._get_attributes_for_kwarg(query)
+        except AttributeError:
+            raise NotQueryException()
+
         suggestions = []
 
         column_properties = self._get_properties(attributes, ColumnProperty)

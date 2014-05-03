@@ -1,10 +1,11 @@
 import re
 from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.orm.properties import ColumnProperty
 from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlalchemy.sql.elements import ColumnElement
 from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer, OrmQueryCompleter, OrmFunctionCompleter
-from IPython.extensions.orm_extension.orm_line_parser import NotQueryException
+from IPython.extensions.orm_extension.utils import NotQueryException, get_module_name
 from IPython.extensions.puyol_extension.parser import PuyolLikeLineParser
 
 __author__ = 'USER'
@@ -13,7 +14,7 @@ __author__ = 'USER'
 class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
     def get_from_clause(self, query):
         inner_query = query._q
-        all_mappers = list(inner_query._join_entities) + [inner_query._entity_zero.entity_zero]
+        all_mappers = list(inner_query._join_entities) + [inner_query._entity_zero().entity_zero]
         all_classes = map(lambda x: x.entity, all_mappers)
         return all_classes
 
@@ -75,41 +76,48 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
 
     def get_mapped_property(self, argument):
         result = None
-        if re.match(r'%s\.[a-zA-Z]+\.[a-zA-Z]+' % self.module_name, argument) and self.is_actual_expression():
+        if re.match(r'%s\.[a-zA-Z]+\.[a-zA-Z]+' % get_module_name(self.module),
+                    argument) and self.get_actual_expression(argument):
             result = self.get_actual_expression(argument)
         if re.match(r'[a-zA-Z]+\.[a-zA-Z]+', argument) and hasattr(self.module,
                                                                    argument.split('.')[
-                                                                       0]) and self.is_actual_expression():
+                                                                       0]) and self.get_actual_expression(argument):
             result = self.get_actual_expression(argument)
-        if result and (isinstance(result, ColumnProperty) or isinstance(result, RelationshipProperty)):
-            return result
+        if result and hasattr(result, 'property') and (isinstance(result.property, StrategizedProperty)):
+            return result.property
 
     def get_binary_expression(self, argument):
         expression = self.get_actual_expression(argument)
-        if isinstance(argument, ColumnElement):
+        if isinstance(expression, ColumnElement):
             return expression
+
+    @staticmethod
+    def _get_normal_suggestions(from_clause, last_arg):
+        all_suggestions = reduce(lambda x, y: x + y, map(get_criteria_suggestions_for_class,
+                                                         from_clause))
+        return filter(lambda x: last_arg in all_suggestions, all_suggestions)
 
     def suggest_criteria(self, query, last_arg):
 
         from_clause = self.analyzer.get_from_clause(query)
-        normal_suggestions = reduce(lambda x, y: x + y, map(get_criteria_suggestions_for_class, from_clause))
         suggestions = []
 
         if last_arg:
             if re.match(INNER_FUNCS_REGEX, last_arg):
                 suggestions = self.suggest_inner(query, last_arg)
-            elif last_arg[:-1] == '.':
+            elif last_arg[-1] == '.' and self.get_mapped_property(last_arg[:-1]):
                 mapped_property = self.get_mapped_property(last_arg[:-1])
                 if mapped_property:
                     suggestions = self.suggest_mapped_property(mapped_property)
-            elif self.get_binary_expression(last_arg):
+            elif self.get_binary_expression(last_arg) is not None:
                 suggestions = self.suggest_logic_operator_for_mapped_property()
             else:
-                suggestions = filter(lambda x: last_arg in normal_suggestions)
+                suggestions = self._get_normal_suggestions(from_clause, last_arg)
 
         return suggestions
 
     def _suggest(self, query, args, kwargs):
+        # TODO remember to suggest ~suggestions if argument is empty.
         if kwargs:
             # Only suggest kwargs
             last_kwarg = kwargs[-1]

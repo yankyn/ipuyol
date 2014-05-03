@@ -1,13 +1,9 @@
 import re
+from IPython.extensions.orm_extension.utils import get_module_full_path, NotQueryException, get_module_name
 
 __author__ = 'USER'
 
 
-class NotQueryException(Exception):
-    pass
-
-
-# TODO Maybe separate to inner parser.
 class OrmLineParser(object):
     def __init__(self, module, namespace):
         self.module = module
@@ -15,10 +11,10 @@ class OrmLineParser(object):
 
     @property
     def module_name(self):
-        return self.module.__name__.split('.')[-1]
+        return get_module_name(self.module)
 
     def get_module_full_path(self):
-        return self.module.__name__
+        return get_module_full_path(self.module)
 
     @classmethod
     def get_funcs_regex(cls):
@@ -94,7 +90,7 @@ class OrmLineParser(object):
             raise NotQueryException()
         if len(re.findall(self.get_funcs_wit_parenthesis_regex(), func_and_args)) != 1:
             raise NotQueryException()
-        # TODO: validate more.
+            # TODO: validate more.
 
     def parse_func_and_args(self, func_and_args):
         func = re.findall(self.get_funcs_regex(), func_and_args)[0]

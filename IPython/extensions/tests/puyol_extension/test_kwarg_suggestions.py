@@ -1,5 +1,5 @@
 import pytest
-from IPython.extensions.orm_extension.orm_line_parser import NotQueryException
+from IPython.extensions.orm_extension.utils import NotQueryException
 from puyol_tests.fixtures.db_fixtures import *
 from fixtures.parsers import *
 

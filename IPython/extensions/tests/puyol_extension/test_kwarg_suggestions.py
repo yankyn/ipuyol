@@ -29,14 +29,14 @@ def test_suggest_kwarg(db, get_completer, query, arg, expected_suggestions):
     assert set(suggestions) == set(expected_suggestions)
 
 
-def test_does_not_suggest_lists(db, get_completer):
+def test_kwarg_does_not_suggest_lists(db, get_completer):
     query = puyol.Country.get()
     argument = 'uni'
     suggestions = get_completer.suggest_kwarg(query, argument)
     assert not suggestions
 
 
-def test_query_is_not_puyol_query(db, get_completer):
+def test_kwarg_query_is_not_puyol_query(db, get_completer):
     query = 'not a query'
     with pytest.raises(NotQueryException):
         get_completer.suggest_kwarg(query, '')

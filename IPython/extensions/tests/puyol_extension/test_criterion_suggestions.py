@@ -46,7 +46,7 @@ def test_get_mapped_property_none(get_completer_with_direct_import, argument):
                                                        ('University.id.', 0),
                                                        ('Country.id == 1', 3),
                                                        ('puyol.Country.id.in_([1])', 3)])
-def test_suggest_criteria(db, get_completer_with_direct_import, monkeypatch, argument, expected_result):
+def test_suggest_criteria_flow(db, get_completer_with_direct_import, monkeypatch, argument, expected_result):
     monkeypatch.setattr(get_completer_with_direct_import, 'suggest_inner', lambda x, y: 1)
     monkeypatch.setattr(get_completer_with_direct_import, 'suggest_mapped_property', lambda x: 2)
     monkeypatch.setattr(get_completer_with_direct_import, 'suggest_logic_operator_for_mapped_property', lambda: 3)

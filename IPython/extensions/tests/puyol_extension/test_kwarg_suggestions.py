@@ -1,6 +1,5 @@
 import copy
 import pytest
-from IPython.core.magic_arguments import argument
 from IPython.extensions.orm_extension.orm_line_parser import NotQueryException
 from IPython.extensions.puyol_extension.completer import PuyolLikeGetCompleter
 from puyol_tests.fixtures.db_fixtures import *

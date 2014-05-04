@@ -1,4 +1,5 @@
 import re
+import regex
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.orm.properties import ColumnProperty
@@ -102,6 +103,7 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
         return map(lambda x: '~' + x, suggestions)
 
     def suggest_criteria(self, query, last_arg):
+        # TODO suggest a proper criterion when a kwarg head is detected.
 
         from_clause = self.analyzer.get_from_clause(query)
         suggestions = []
@@ -151,6 +153,9 @@ class PuyolLikeGetCompleter(OrmFunctionCompleter):
     @staticmethod
     def suggest_logic_operator_for_complete_criterion():
         return [' | ', ' & ']
+
+    def get_criterion_functions(self):
+        return ['any', 'has']
 
 
 class PuyolLikeJoinCompleter(OrmFunctionCompleter):

@@ -12,14 +12,14 @@ __author__ = 'USER'
                                                             (puyol.University.country, ['has']),
                                                             (puyol.Country.id, ['in_'])])
 def test_suggest_mapped_property(get_completer, property, expected_suggestions):
-    suggestions = get_completer.suggest_mapped_property(property.property)
+    suggestions = get_completer._mapped_property_functions(property.property)
     assert len(suggestions) == len(expected_suggestions)
     assert set(suggestions) == set(expected_suggestions)
 
 
 def test_suggest_mapped_property_fails(get_completer):
     with pytest.raises(NotQueryException):
-        get_completer.suggest_mapped_property('not a property')
+        get_completer._mapped_property_functions('not a property')
 
 
 @pytest.mark.parametrize('argument, expected_result',

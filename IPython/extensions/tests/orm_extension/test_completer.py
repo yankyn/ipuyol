@@ -27,7 +27,11 @@ def mock_completer():
                           (['a==5, puyol.Country.universities',
                             'puyol.University.courses',
                             '), puyol.Country.somethings',
-                            'b=5, c=)'], set([0]))])
+                            'b=5, c=)'], set([0])),
+                          (['a==5, puyol.Country.universities',
+                            'foo(), puyol.University.courses',
+                            'foo()), puyol.Country.somethings',
+                            'foo(), b=5, c=)'], set([0]))])
 def test_open_criterion_call_indices(calls, expected_indices):
     indices = OrmFunctionCompleter.open_criterion_call_indices(calls)
     assert indices == expected_indices

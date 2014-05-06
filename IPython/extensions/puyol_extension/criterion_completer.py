@@ -43,7 +43,7 @@ class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
             raise NotQueryException()
         if hasattr(relationship_property, 'property') and isinstance(relationship_property.property,
                                                                      RelationshipProperty):
-            return relationship_property.parent.entity
+            return relationship_property.property.mapper.entity
         else:
             raise NotQueryException()
 
@@ -64,7 +64,7 @@ class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
     def get_last_table(self):
         if not self.open_calls:
             raise NotQueryException()
-        last_call = self.open_calls[-1]  # TODO make sure we sort the calls.
+        last_call = self.open_calls[-1]
         return self.get_property_from_property_string(self.get_property_string_from_call(last_call))
 
 

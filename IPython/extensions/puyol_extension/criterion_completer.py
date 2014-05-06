@@ -68,11 +68,10 @@ class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
         return self.get_property_from_property_string(self.get_property_string_from_call(last_call))
 
 
-def get_criteria_suggestions_for_class(cls):
-    # TODO make this return sane strings.
+def get_criteria_suggestions_for_class(cls, module):
     mapper = class_mapper(cls)
     attributes = mapper.attrs
-    return map(lambda x: x.class_attribute, attributes)
+    return ['%s.%s.%s' % (get_module_name(module), cls.__name__, attr.key) for attr in attributes]
 
 
 class AbstractCriterionCompleter(object):
@@ -158,11 +157,11 @@ class AbstractCriterionCompleter(object):
             return True
         return False
 
-    @staticmethod
-    def _get_normal_suggestions(from_clause, last_arg):
-        all_suggestions = reduce(lambda x, y: x + y, map(get_criteria_suggestions_for_class,
-                                                         from_clause))
-        return filter(lambda x: last_arg in all_suggestions, all_suggestions)
+    def _get_normal_suggestions(self, from_clause, last_arg):
+        all_suggestions = reduce(lambda x, y: x + y,
+                                 [get_criteria_suggestions_for_class(cls, self.module) for cls in from_clause])
+        results = filter(lambda x: last_arg in x, all_suggestions)
+        return results
 
     @staticmethod
     def get_criterion_suggestion_variants(suggestions):

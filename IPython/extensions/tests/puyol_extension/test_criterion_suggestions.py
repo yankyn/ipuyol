@@ -9,7 +9,6 @@ import puyol
 __author__ = 'USER'
 
 
-
 @pytest.mark.parametrize('property, expected_suggestions', [(puyol.Country.universities, ['any']),
                                                             (puyol.University.country, ['has']),
                                                             (puyol.Country.id, ['in_'])])
@@ -51,3 +50,22 @@ def test_suggest_criteria_flow(db, criterion_completer_with_direct_import, monke
     criterion_completer_with_direct_import.query = puyol.Country.get()
     criterion_completer_with_direct_import.argument = argument
     assert criterion_completer_with_direct_import.suggest_criteria() == expected_result
+
+
+@pytest.mark.parametrize('from_clause, suggestions, argument',
+                         [([puyol.Country], ['puyol.Country.id', 'puyol.Country.name', 'puyol.Country.universities'],
+                           ''),
+                          ([puyol.Country, puyol.University],
+                           ['puyol.Country.id', 'puyol.Country.name', 'puyol.Country.universities',
+                            'puyol.University.country', 'puyol.University.country_id', 'puyol.University.courses',
+                            'puyol.University.id', 'puyol.University.name'],
+                           ''),
+                          ([puyol.Country], ['puyol.Country.name'],
+                           'name'),
+                          ([puyol.Country, puyol.University],
+                           ['puyol.Country.id', 'puyol.University.country_id',
+                            'puyol.University.id'],
+                           'id')])
+def test_default_criterion_suggestions(criterion_completer, from_clause, suggestions, argument):
+    assert set(criterion_completer._get_normal_suggestions(from_clause, argument)) == set(suggestions)
+    assert len(criterion_completer._get_normal_suggestions(from_clause, argument)) == len(suggestions)

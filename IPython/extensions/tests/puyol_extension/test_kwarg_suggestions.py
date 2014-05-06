@@ -12,21 +12,26 @@ __author__ = 'USER'
                                                                '', ['name=', 'id=', 'country=', 'country_id=']),
                                                               ('puyol.Country.get().join(puyol.Country.universities)',
                                                                'c', ['country=', 'country_id=']), ])
-def test_suggest_kwarg(db, get_completer, query, arg, expected_suggestions):
+def test_suggest_kwarg(db, criterion_completer, query, arg, expected_suggestions):
     query = eval(query)
-    suggestions = get_completer.suggest_kwarg(query, arg)
+    criterion_completer.query = query
+    criterion_completer.argument = arg
+    suggestions = criterion_completer.suggest_kwarg()
     assert len(suggestions) == len(expected_suggestions)
     assert set(suggestions) == set(expected_suggestions)
 
 
-def test_kwarg_does_not_suggest_lists(db, get_completer):
+def test_kwarg_does_not_suggest_lists(db, criterion_completer):
     query = puyol.Country.get()
-    argument = 'uni'
-    suggestions = get_completer.suggest_kwarg(query, argument)
+    criterion_completer.query = query
+    criterion_completer.argument = 'uni'
+    suggestions = criterion_completer.suggest_kwarg()
     assert not suggestions
 
 
-def test_kwarg_query_is_not_puyol_query(db, get_completer):
+def test_kwarg_query_is_not_puyol_query(db, criterion_completer):
     query = 'not a query'
+    criterion_completer.query = query
+    criterion_completer.argument = ''
     with pytest.raises(NotQueryException):
-        get_completer.suggest_kwarg(query, '')
+        criterion_completer.suggest_kwarg()

@@ -1,12 +1,9 @@
 import re
-from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import class_mapper, ColumnProperty, RelationshipProperty
 from sqlalchemy.orm.interfaces import StrategizedProperty
-from sqlalchemy.orm.properties import ColumnProperty
-from sqlalchemy.orm.relationships import RelationshipProperty
-from sqlalchemy.sql.elements import ClauseElement
-from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer, OrmQueryCompleter, OrmFunctionCompleter
+from sqlalchemy.sql import ClauseElement
+from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer
 from IPython.extensions.orm_extension.utils import NotQueryException, get_module_name
-from IPython.extensions.puyol_extension.parser import PuyolLikeLineParser
 
 __author__ = 'USER'
 
@@ -22,13 +19,13 @@ class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
         return self.query._q._joinpoint_zero()
 
 
-class CompleteCriterion(object):
-    @staticmethod
-    def suggest():
-        return [' | ', ' & ']
+def get_criteria_suggestions_for_class(cls):
+    mapper = class_mapper(cls)
+    attributes = mapper.attrs
+    return map(lambda x: x.class_attribute, attributes)
 
 
-class AbstractCriterion(object):
+class AbstractCriterionCompleter(object):
     def __init__(self, argument, query, module, namespace):
         self.argument = argument
         self.query = query
@@ -56,15 +53,14 @@ class AbstractCriterion(object):
 
     def suggest_criteria(self):
         # TODO suggest a proper criterion when a kwarg head is detected.
-        suggestions = []
         if self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
             # Looks like a column/relationship.
             mapped_property = self.get_mapped_property(self.argument[:-1])
             suggestions = self._mapped_property_functions(mapped_property)
         elif self._is_boolean_expression():
-            return ComplexCriterion.suggest()
+            return ComplexCriterionCompleter.suggest()
         else:
-            from_clause = self.get_query_analyzer().get_from_clause(self.query)
+            from_clause = self.get_query_analyzer().get_from_clause()
             suggestions = self._get_normal_suggestions(from_clause, self.argument)
         return suggestions + self.get_criterion_suggestion_variants(suggestions)
 
@@ -80,7 +76,7 @@ class AbstractCriterion(object):
         return re.match('(.+, ?)?[a-zA-Z]+=[^=]+', argument_string)
 
     def _get_attributes_for_kwarg(self, query):
-        mapper = self.get_query_analyzer().get_last_join(query)
+        mapper = self.get_query_analyzer().get_last_join()
         attributes = mapper.attrs
         return attributes
 
@@ -136,86 +132,16 @@ class AbstractCriterion(object):
             raise NotQueryException()
 
 
-class ComplexCriterion(AbstractCriterion):
-    pass
-
-
-class QuerySimpleCriterion(AbstractCriterion):
+class QuerySimpleCriterionCompleter(AbstractCriterionCompleter):
     def get_query_analyzer(self):
         return PuyolLikeQueryAnalyzer(self.query)
 
 
-class InnerCriterionSimpleCriterion(AbstractCriterion):
+class ComplexCriterionCompleter(AbstractCriterionCompleter):
     pass
 
 
-def get_criteria_suggestions_for_class(cls):
-    mapper = class_mapper(cls)
-    attributes = mapper.attrs
-    return map(lambda x: x.class_attribute, attributes)
-
-
-class PuyolLikeGetCompleter(OrmFunctionCompleter):
-    def __init__(self, module, namespace, query):
-        OrmFunctionCompleter.__init__(self, module=module, namespace=namespace)
-        self.query = query
-
+class RedundantCriterionCompleter(object):
     @staticmethod
-    def open_criterion_call_indices(calls):
-        closed_call_indices = set()
-        count = 0
-        for call in calls:
-            for i in range(call.count(')')):
-                closed_call_indices.add(count - i - 1)
-            count += 1
-        all_call_indices = set(range(len(calls) - 1))
-        open_call_indices = all_call_indices.difference(closed_call_indices)
-        return open_call_indices
-
-    def parse_arguments(self, arguments_string):
-        split_regex = self._get_call_split_regex()
-        calls = re.split(split_regex, arguments_string)
-        if not calls:
-            return QuerySimpleCriterion(argument=arguments_string, query=self.query)
-        open_calls = self.open_criterion_call_indices(calls)
-        if not open_calls:
-            if re.match('.*\) *,.*', calls[-1]):  # Last argument is not the last call
-                # ignore any calls, simply pass the last argument.
-                return QuerySimpleCriterion(argument=arguments_string.split(',')[-1].strip(), query=self.query)
-            else:  # Last argument is the last call.
-                return CompleteCriterion()
-        else:
-            # There is an open criterion call,
-            # remove all junk and pass everything after the first call to the actual completer.
-            first_call = calls[0]
-            arguments_to_remove = first_call.count(',')
-            return ComplexCriterion(module=self.module, namespace=self.namespace,
-                                    argument=arguments_string.split(',', arguments_to_remove)[-1].strip(),
-                                    query=self.query)
-
-    def suggest(self, arguments_string):
-        # TODO remember to suggest ~suggestions if argument is empty.
-        criterion = self.parse_arguments(arguments_string)
-        return criterion.suggest()
-
-    def get_criterion_functions(self):
-        return ['any', 'has']
-
-    def _get_call_split_regex(self):
-        allowed_functions = self.get_criterion_functions()
-        return '|'.join(map(lambda x: '\.' + x + '\(', allowed_functions))
-
-
-class PuyolLikeJoinCompleter(OrmFunctionCompleter):
-    pass
-
-
-class PuyolLikeQueryCompleter(OrmQueryCompleter):
-    _function_handlers = {'get': PuyolLikeGetCompleter, 'refine': PuyolLikeGetCompleter,
-                          'join': PuyolLikeJoinCompleter}
-
-    def get_parser(self):
-        return PuyolLikeLineParser(module=self.module, namespace=self.namespace)
-
-    def get_handler_for_function(self, function, query):
-        return self._function_handlers.get(function)(query=query, module=self.module, namespace=self.namespace)
+    def suggest():
+        return [' | ', ' & ']

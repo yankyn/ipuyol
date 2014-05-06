@@ -21,32 +21,28 @@ class OrmQueryCompleter(object):
     def get_parser(self):
         raise NotImplementedError()
 
-    def get_handler_for_function(self, function, query):
+    def get_handler_for_function(self, function):
         raise NotImplementedError()
 
     def suggest(self, line):
         parser = self.get_parser()
         query, function, arguments = parser.parse(line)
-        inner_completer = self.get_handler_for_function(function, query)
-        if not inner_completer:
+        completer_factory = self.get_handler_for_function(function)
+        if not completer_factory:
             raise NotQueryException()
-        return inner_completer.suggest(arguments)
+        return completer_factory.suggest(arguments, query)
 
 
 class NotSupportedYetError(Exception):
     pass
 
 
-class OrmFunctionCompleter(object):
-    def __init__(self, module, namespace, query):
+class OrmArgumentCompleterFactory(object):
+    def __init__(self, module, namespace):
         self.module = module
         self.namespace = namespace
-        self.query = query
 
-    def get_criterion_functions(self):
-        raise NotImplementedError()
-
-    def suggest(self, arguments):
+    def get_completer(self, arguments, query):
         raise NotImplementedError()
 
     @classmethod

@@ -41,12 +41,16 @@ def test_get_mapped_property_none(criterion_completer_with_direct_import, argume
                                                        ('id', 0),
                                                        ('puyol.Country.universities.', 2),
                                                        ('Country.universities.', 2),
-                                                       ('University.id.', 0)])
+                                                       ('University.id.', 0),
+                                                       ('id=', 3),
+                                                       ('id = ', 3)])
 def test_suggest_criteria_flow(db, criterion_completer_with_direct_import, monkeypatch, argument, expected_result):
     monkeypatch.setattr(criterion_completer_with_direct_import, '_mapped_property_functions', lambda x: 2)
     monkeypatch.setattr(criterion_completer_with_direct_import, '_get_normal_suggestions', lambda x, y: 0)
     monkeypatch.setattr(criterion_completer_with_direct_import, 'get_criterion_suggestion_variants',
                         lambda x: 0)  # So we ignore variant addition.
+    monkeypatch.setattr(criterion_completer_with_direct_import, '_map_suggestions_to_initial_kwarg',
+                        lambda x: 3)
     criterion_completer_with_direct_import.query = puyol.Country.get()
     criterion_completer_with_direct_import.argument = argument
     assert criterion_completer_with_direct_import.suggest_criteria() == expected_result

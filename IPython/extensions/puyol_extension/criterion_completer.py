@@ -100,8 +100,11 @@ class AbstractCriterionCompleter(object):
             suggestions = filter(lambda x: x.startswith(self.argument), suggestions)
         return suggestions
 
+    @staticmethod
+    def _map_suggestions_to_initial_kwarg(suggestions):
+        return [suggestion + ' == ' for suggestion in suggestions]
+
     def suggest_criteria(self):
-        # TODO suggest a proper criterion when a kwarg beginning is detected.
         if self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
             # Looks like a column/relationship.
             mapped_property = self.get_mapped_property(self.argument[:-1])
@@ -110,8 +113,12 @@ class AbstractCriterionCompleter(object):
             return RedundantCriterionCompleter.suggest()
         else:
             from_clause = self.get_query_analyzer().get_from_clause()
-            suggestions = self._get_normal_suggestions(from_clause, self.argument)
-        return suggestions + self.get_criterion_suggestion_variants(suggestions)
+            if re.match('[a-zA-Z]+ ?= ?$', self.argument):
+                suggestions = self._map_suggestions_to_initial_kwarg(
+                    self._get_normal_suggestions(from_clause, self.argument))
+            else:
+                suggestions = self._get_normal_suggestions(from_clause, self.argument)
+        return suggestions  # + self.get_criterion_suggestion_variants(suggestions)
 
     def suggest(self):
         if self._has_kwarg():

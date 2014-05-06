@@ -24,11 +24,12 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
 
     @classmethod
     def open_criterion_calls(cls, calls):
-        indices = cls.open_criterion_call_indices(calls)
+        indices = list(cls.open_criterion_call_indices(calls))
         indices.sort()
         return [calls[i] for i in indices]
 
     def parse_arguments(self, arguments_string, query):
+        # TODO change EVERYTHING. this won't work since we cannot "override" the current argument.
         split_regex = self._get_call_split_regex()
         calls = re.split(split_regex, arguments_string)
         if len(calls) == 1:

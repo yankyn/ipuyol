@@ -9,14 +9,7 @@ __author__ = 'USER'
 
 @pytest.fixture
 def mock_completer_factory():
-    class MockOrmArgumentCompleterFactory(PuyolLikeGetCompleterFactory):
-        def get_binary_expression_mock(self):
-            return 'mock!'
-
-        def get_criterion_functions(self):
-            return ['any', 'has']
-
-    return MockOrmArgumentCompleterFactory(module=mock_module, namespace={})
+    return PuyolLikeGetCompleterFactory(module=mock_module, namespace={})
 
 
 LINES = ['a==5, puyol.Country.universities.any(puyol.University.courses.any(puyol.Country.somethings.any(b=5, c=)',

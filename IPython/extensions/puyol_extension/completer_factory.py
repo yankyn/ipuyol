@@ -11,7 +11,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
         OrmArgumentCompleterFactory.__init__(self, module=module, namespace=namespace)
 
     @staticmethod
-    def open_criterion_call_indices(calls):
+    def open_criterion_calls(calls):
         closed_call_indices = set()
         count = 0
         for call in calls:
@@ -20,7 +20,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
             count += 1
         all_call_indices = set(range(len(calls) - 1))
         open_call_indices = all_call_indices.difference(closed_call_indices)
-        return open_call_indices
+        return [calls[i] for i in open_call_indices]
 
     def parse_arguments(self, arguments_string, query):
         split_regex = self._get_call_split_regex()
@@ -28,7 +28,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
         if len(calls) == 1:
             return QuerySimpleCriterionCompleter(argument=arguments_string, query=query, module=self.module,
                                                  namespace=self.namespace)
-        open_calls = self.open_criterion_call_indices(calls)
+        open_calls = self.open_criterion_calls(calls)
         if not open_calls:
             if re.match('.*\) *,.*', calls[-1]):  # Last argument is not the last call
                 # ignore any calls, simply pass the last argument.
@@ -43,7 +43,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
             arguments_to_remove = first_call.count(',')
             return ComplexCriterionCompleter(module=self.module, namespace=self.namespace,
                                              argument=arguments_string.split(',', arguments_to_remove)[-1].strip(),
-                                             query=query)
+                                             query=query, open_calls=open_calls)
 
     def get_completer(self, arguments_string, query):
         completer = self.parse_arguments(arguments_string, query)

@@ -35,7 +35,7 @@ LINES = ['a==5, puyol.Country.universities.any(puyol.University.courses.any(puyo
                             'foo()), puyol.Country.somethings',
                             'foo(), b=5, c=)'], set([0]))])
 def test_open_criterion_call_indices(calls, expected_indices):
-    indices = PuyolLikeGetCompleterFactory.open_criterion_call_indices(calls)
+    indices = PuyolLikeGetCompleterFactory.open_criterion_calls(calls)
     assert indices == expected_indices
 
 

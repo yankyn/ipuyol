@@ -19,6 +19,20 @@ class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
         return self.query._q._joinpoint_zero()
 
 
+class PuyollikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
+    def __init__(self, query, open_calls):
+        PuyolLikeQueryAnalyzer.__init__(self, query)
+        self.open_calls = open_calls
+
+    def get_from_clause(self):
+        join_classes = PuyolLikeQueryAnalyzer.get_from_clause(self)
+        for call in self.open_calls:
+            pass
+
+    def get_last_join(self):
+        return self.query._q._joinpoint_zero()
+
+
 def get_criteria_suggestions_for_class(cls):
     mapper = class_mapper(cls)
     attributes = mapper.attrs
@@ -138,7 +152,13 @@ class QuerySimpleCriterionCompleter(AbstractCriterionCompleter):
 
 
 class ComplexCriterionCompleter(AbstractCriterionCompleter):
-    pass
+
+    def __init__(self, argument, query, module, namespace, open_calls):
+        AbstractCriterionCompleter.__init__(self, argument, query, module, namespace)
+        self.open_calls = open_calls
+
+    def get_query_analyzer(self):
+        pass
 
 
 class RedundantCriterionCompleter(object):

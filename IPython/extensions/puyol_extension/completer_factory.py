@@ -10,8 +10,8 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
     def __init__(self, module, namespace):
         OrmArgumentCompleterFactory.__init__(self, module=module, namespace=namespace)
 
-    @staticmethod
-    def open_criterion_calls(calls):
+    @classmethod
+    def open_criterion_call_indices(cls, calls):
         closed_call_indices = set()
         count = 0
         for call in calls:
@@ -20,7 +20,13 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
             count += 1
         all_call_indices = set(range(len(calls) - 1))
         open_call_indices = all_call_indices.difference(closed_call_indices)
-        return [calls[i] for i in open_call_indices]
+        return open_call_indices
+
+    @classmethod
+    def open_criterion_calls(cls, calls):
+        indices = cls.open_criterion_call_indices(calls)
+        indices.sort()
+        return [calls[i] for i in indices]
 
     def parse_arguments(self, arguments_string, query):
         split_regex = self._get_call_split_regex()

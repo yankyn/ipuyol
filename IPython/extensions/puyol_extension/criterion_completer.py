@@ -15,25 +15,61 @@ class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
         all_classes = map(lambda x: x.entity, all_mappers)
         return all_classes
 
-    def get_last_join(self):
+    def get_last_table(self):
         return self.query._q._joinpoint_zero()
 
 
-class PuyollikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
-    def __init__(self, query, open_calls):
+class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
+    def __init__(self, query, open_calls, module, namespace):
         PuyolLikeQueryAnalyzer.__init__(self, query)
         self.open_calls = open_calls
+        self.module = module
+        self.namespace = namespace
+
+    def get_property_string_from_call(self, call):
+        if re.match('.*%s\.[a-zA-Z]+\.[a-zA-Z]+$' % get_module_name(self.module), call):
+            string = re.findall('%s\.[a-zA-Z]+\.[a-zA-Z]+$' % get_module_name(self.module), call)[0]
+            return string
+        elif re.match('.*[a-zA-Z]+\.[a-zA-Z]+$', call):
+            string = re.findall('[a-zA-Z]+\.[a-zA-Z]+$', call)[0]
+            return string
+        else:
+            raise NotQueryException()
+
+    def get_property_from_property_string(self, property_string):
+        try:
+            relationship_property = eval(property_string, self.namespace)
+        except:
+            raise NotQueryException()
+        if hasattr(relationship_property, 'property') and isinstance(relationship_property.property,
+                                                                     RelationshipProperty):
+            return relationship_property.parent.entity
+        else:
+            raise NotQueryException()
 
     def get_from_clause(self):
         join_classes = PuyolLikeQueryAnalyzer.get_from_clause(self)
-        for call in self.open_calls:
-            pass
+        exists_classes = []
+        legitimate_strings = []
 
-    def get_last_join(self):
-        return self.query._q._joinpoint_zero()
+        for call in self.open_calls:
+            string = self.get_property_string_from_call(call)
+            legitimate_strings.append(string)
+
+        for string in legitimate_strings:
+            entity = self.get_property_from_property_string(string)
+            exists_classes.append(entity)
+        return join_classes + exists_classes
+
+    def get_last_table(self):
+        if not self.open_calls:
+            raise NotQueryException()
+        last_call = self.open_calls[-1]  # TODO make sure we sort the calls.
+        return self.get_property_from_property_string(self.get_property_string_from_call(last_call))
 
 
 def get_criteria_suggestions_for_class(cls):
+    # TODO make this return sane strings.
     mapper = class_mapper(cls)
     attributes = mapper.attrs
     return map(lambda x: x.class_attribute, attributes)
@@ -66,13 +102,13 @@ class AbstractCriterionCompleter(object):
         return suggestions
 
     def suggest_criteria(self):
-        # TODO suggest a proper criterion when a kwarg head is detected.
+        # TODO suggest a proper criterion when a kwarg beginning is detected.
         if self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
             # Looks like a column/relationship.
             mapped_property = self.get_mapped_property(self.argument[:-1])
             suggestions = self._mapped_property_functions(mapped_property)
         elif self._is_boolean_expression():
-            return ComplexCriterionCompleter.suggest()
+            return RedundantCriterionCompleter.suggest()
         else:
             from_clause = self.get_query_analyzer().get_from_clause()
             suggestions = self._get_normal_suggestions(from_clause, self.argument)
@@ -90,14 +126,13 @@ class AbstractCriterionCompleter(object):
         return re.match('(.+, ?)?[a-zA-Z]+=[^=]+', argument_string)
 
     def _get_attributes_for_kwarg(self, query):
-        mapper = self.get_query_analyzer().get_last_join()
+        mapper = self.get_query_analyzer().get_last_table()
         attributes = mapper.attrs
         return attributes
 
     @staticmethod
     def _get_properties(attributes, attribute_cls):
         return filter(lambda x: isinstance(x, attribute_cls), attributes)
-
 
     def evaluate_expression(self, argument):
         try:
@@ -152,7 +187,6 @@ class QuerySimpleCriterionCompleter(AbstractCriterionCompleter):
 
 
 class ComplexCriterionCompleter(AbstractCriterionCompleter):
-
     def __init__(self, argument, query, module, namespace, open_calls):
         AbstractCriterionCompleter.__init__(self, argument, query, module, namespace)
         self.open_calls = open_calls

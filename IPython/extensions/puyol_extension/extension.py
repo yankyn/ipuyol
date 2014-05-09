@@ -1,5 +1,4 @@
 import types
-from IPython.core.completer import IPCompleter
 
 __author__ = 'Nathaniel'
 

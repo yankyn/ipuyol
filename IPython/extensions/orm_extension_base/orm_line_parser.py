@@ -1,5 +1,5 @@
 import re
-from IPython.extensions.orm_extension.utils import get_module_full_path, NotQueryException, get_module_name
+from IPython.extensions.orm_extension_base.utils import get_module_name, get_module_full_path, NotQueryException
 
 __author__ = 'USER'
 

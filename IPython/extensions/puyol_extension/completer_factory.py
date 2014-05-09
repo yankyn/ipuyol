@@ -1,5 +1,5 @@
 import re
-from IPython.extensions.orm_extension.orm_completer import OrmArgumentCompleterFactory
+from IPython.extensions.orm_extension_base.orm_completer import OrmArgumentCompleterFactory
 from IPython.extensions.puyol_extension.criterion_completer import QuerySimpleCriterionCompleter, \
     RedundantCriterionCompleter, ComplexCriterionCompleter
 
@@ -29,7 +29,6 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
         return [calls[i] for i in indices]
 
     def parse_arguments(self, arguments_string, query):
-        # TODO change EVERYTHING. this won't work since we cannot "override" the current argument.
         split_regex = self._get_call_split_regex()
         calls = re.split(split_regex, arguments_string)
         if len(calls) == 1:

@@ -1,4 +1,4 @@
-from IPython.extensions.orm_extension.orm_line_parser import OrmLineParser
+from IPython.extensions.orm_extension_base.orm_line_parser import OrmLineParser
 
 __author__ = 'USER'
 

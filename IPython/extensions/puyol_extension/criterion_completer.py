@@ -2,8 +2,8 @@ import re
 from sqlalchemy.orm import class_mapper, ColumnProperty, RelationshipProperty
 from sqlalchemy.orm.interfaces import StrategizedProperty
 from sqlalchemy.sql import ClauseElement
-from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer
-from IPython.extensions.orm_extension.utils import NotQueryException, get_module_name
+from IPython.extensions.orm_extension_base.orm_completer import OrmQueryAnalyzer
+from IPython.extensions.orm_extension_base.utils import get_module_name, NotQueryException
 
 __author__ = 'USER'
 

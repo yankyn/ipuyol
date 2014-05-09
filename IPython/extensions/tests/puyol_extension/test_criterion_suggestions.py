@@ -1,5 +1,5 @@
 import pytest
-from IPython.extensions.orm_extension.utils import NotQueryException
+from IPython.extensions.orm_extension_base.utils import NotQueryException
 from IPython.extensions.puyol_extension.completer_factory import PuyolLikeGetCompleterFactory
 from puyol_tests.fixtures.db_fixtures import db
 from fixtures.parsers import *

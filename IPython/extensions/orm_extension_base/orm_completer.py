@@ -1,5 +1,5 @@
 import re
-from IPython.extensions.orm_extension.utils import NotQueryException
+from IPython.extensions.orm_extension_base.utils import NotQueryException
 
 __author__ = 'Nathaniel'
 

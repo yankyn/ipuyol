@@ -1,4 +1,4 @@
-from IPython.extensions.orm_extension.orm_completer import OrmQueryAnalyzer, OrmQueryCompleter
+from IPython.extensions.orm_extension_base.orm_completer import OrmQueryCompleter
 from IPython.extensions.puyol_extension.completer_factory import PuyolLikeGetCompleterFactory, \
     PuyolLikeJoinCompleterFactory
 from IPython.extensions.puyol_extension.parser import PuyolLikeLineParser

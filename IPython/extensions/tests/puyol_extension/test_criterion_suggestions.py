@@ -73,3 +73,16 @@ def test_suggest_criteria_flow(db, criterion_completer_with_direct_import, monke
 def test_default_criterion_suggestions(criterion_completer, from_clause, suggestions, argument):
     assert set(criterion_completer._get_normal_suggestions(from_clause, argument)) == set(suggestions)
     assert len(criterion_completer._get_normal_suggestions(from_clause, argument)) == len(suggestions)
+
+
+@pytest.mark.parametrize('from_clause, suggestions, argument',
+                         [([puyol.Country], ['puyol.Country.id == '], 'id = '),
+                          ([puyol.Country, puyol.University],
+                           ['puyol.Country.id == ', 'puyol.University.country_id == ', 'puyol.University.id == ', ],
+                           'id='),
+                          ([puyol.Country], ['puyol.Country.name == '],
+                           'name')])
+def test_suggest_criterion_for_kwarg(criterion_completer, from_clause, suggestions, argument):
+    criterion_completer.argument = argument
+    assert set(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == set(suggestions)
+    assert len(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == len(suggestions)

@@ -104,6 +104,12 @@ class AbstractCriterionCompleter(object):
     def _map_suggestions_to_initial_kwarg(suggestions):
         return [suggestion + ' == ' for suggestion in suggestions]
 
+    def _suggest_criteria_for_kwarg(self, from_clause):
+        argument = re.findall('[a-zA-Z]+', self.argument)[0]
+        suggestions = self._map_suggestions_to_initial_kwarg(
+            self._get_normal_suggestions(from_clause, argument))
+        return suggestions
+
     def suggest_criteria(self):
         if self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
             # Looks like a column/relationship.
@@ -114,8 +120,7 @@ class AbstractCriterionCompleter(object):
         else:
             from_clause = self.get_query_analyzer().get_from_clause()
             if re.match('[a-zA-Z]+ ?= ?$', self.argument):
-                suggestions = self._map_suggestions_to_initial_kwarg(
-                    self._get_normal_suggestions(from_clause, self.argument))
+                return self._map_suggestions_to_initial_kwarg(from_clause)
             else:
                 suggestions = self._get_normal_suggestions(from_clause, self.argument)
         return suggestions  # + self.get_criterion_suggestion_variants(suggestions)
@@ -125,7 +130,6 @@ class AbstractCriterionCompleter(object):
             return self.suggest_kwarg()
         else:
             self.suggest_criteria()
-
 
     @staticmethod
     def _has_kwarg(argument_string):
@@ -198,7 +202,8 @@ class ComplexCriterionCompleter(AbstractCriterionCompleter):
         self.open_calls = open_calls
 
     def get_query_analyzer(self):
-        pass
+        return PuyolLikeExistsCriteriaAnalyzer(query=self.query, open_calls=self.open_calls, module=self.module,
+                                               namespace=self.namespace)
 
 
 class RedundantCriterionCompleter(object):

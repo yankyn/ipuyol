@@ -39,7 +39,7 @@ class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
     def get_property_from_property_string(self, property_string):
         try:
             relationship_property = eval(property_string, self.namespace)
-        except:
+        except Exception:
             raise NotQueryException()
         if hasattr(relationship_property, 'property') and isinstance(relationship_property.property,
                                                                      RelationshipProperty):
@@ -97,22 +97,16 @@ class AbstractCriterionCompleter(object):
         relationship_suggestions = map(lambda x: x.key + '=', filter(lambda x: not x.uselist, relationship_properties))
         suggestions += relationship_suggestions
         if self.argument:
-            suggestions = filter(lambda x: x.startswith(self.argument), suggestions)
-        return suggestions
-
-    @staticmethod
-    def _map_suggestions_to_initial_kwarg(suggestions):
-        return [suggestion + ' == ' for suggestion in suggestions]
-
-    def _suggest_criteria_for_kwarg(self, from_clause):
-        argument = re.findall('[a-zA-Z]+', self.argument)[0]
-        suggestions = self._map_suggestions_to_initial_kwarg(
-            self._get_normal_suggestions(from_clause, argument))
+            argument = self.argument.split(',')[-1]
+            if '=' in argument:
+                return []
+            suggestions = filter(lambda x: x.startswith(argument.strip()), suggestions)
         return suggestions
 
     def suggest_criteria(self):
-        if self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
+        if self.argument and self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
             # Looks like a column/relationship.
+            # TODO make this work.
             mapped_property = self.get_mapped_property(self.argument[:-1])
             suggestions = self._mapped_property_functions(mapped_property)
         elif self._is_boolean_expression():
@@ -120,23 +114,23 @@ class AbstractCriterionCompleter(object):
         else:
             from_clause = self.get_query_analyzer().get_from_clause()
             if re.match('[a-zA-Z]+ ?= ?$', self.argument):
-                return self._map_suggestions_to_initial_kwarg(from_clause)
+                return []
             else:
                 suggestions = self._get_normal_suggestions(from_clause, self.argument)
         return suggestions  # + self.get_criterion_suggestion_variants(suggestions)
 
     def suggest(self):
-        if self._has_kwarg():
+        if self._has_kwarg(self.argument):
             return self.suggest_kwarg()
         else:
-            self.suggest_criteria()
+            return self.suggest_criteria()
 
     @staticmethod
     def _has_kwarg(argument_string):
         return re.match('(.+, ?)?[a-zA-Z]+=[^=]+', argument_string)
 
     def _get_attributes_for_kwarg(self, query):
-        mapper = self.get_query_analyzer().get_last_table()
+        mapper = class_mapper(self.get_query_analyzer().get_last_table())
         attributes = mapper.attrs
         return attributes
 

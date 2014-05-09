@@ -20,16 +20,17 @@ class OrmQueryCompleter(object):
     def get_parser(self):
         raise NotImplementedError()
 
-    def get_handler_for_function(self, function):
+    def get_factory_for_function(self, function):
         raise NotImplementedError()
 
     def suggest(self, line):
         parser = self.get_parser()
         query, function, arguments = parser.parse(line)
-        completer_factory = self.get_handler_for_function(function)
+        completer_factory = self.get_factory_for_function(function)
         if not completer_factory:
             raise NotQueryException()
-        return completer_factory.suggest(arguments, query)
+        completer = completer_factory.get_completer(arguments, query)
+        return completer.suggest()
 
 
 class NotSupportedYetError(Exception):

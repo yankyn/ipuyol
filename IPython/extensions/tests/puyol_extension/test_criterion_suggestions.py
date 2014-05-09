@@ -42,15 +42,12 @@ def test_get_mapped_property_none(criterion_completer_with_direct_import, argume
                                                        ('puyol.Country.universities.', 2),
                                                        ('Country.universities.', 2),
                                                        ('University.id.', 0),
-                                                       ('id=', 3),
-                                                       ('id = ', 3)])
+                                                       ('', 0)])
 def test_suggest_criteria_flow(db, criterion_completer_with_direct_import, monkeypatch, argument, expected_result):
     monkeypatch.setattr(criterion_completer_with_direct_import, '_mapped_property_functions', lambda x: 2)
     monkeypatch.setattr(criterion_completer_with_direct_import, '_get_normal_suggestions', lambda x, y: 0)
     monkeypatch.setattr(criterion_completer_with_direct_import, 'get_criterion_suggestion_variants',
                         lambda x: 0)  # So we ignore variant addition.
-    monkeypatch.setattr(criterion_completer_with_direct_import, '_map_suggestions_to_initial_kwarg',
-                        lambda x: 3)
     criterion_completer_with_direct_import.query = puyol.Country.get()
     criterion_completer_with_direct_import.argument = argument
     assert criterion_completer_with_direct_import.suggest_criteria() == expected_result
@@ -69,20 +66,20 @@ def test_suggest_criteria_flow(db, criterion_completer_with_direct_import, monke
                           ([puyol.Country, puyol.University],
                            ['puyol.Country.id', 'puyol.University.country_id',
                             'puyol.University.id'],
-                           'id')])
+                           'id'),])
 def test_default_criterion_suggestions(criterion_completer, from_clause, suggestions, argument):
     assert set(criterion_completer._get_normal_suggestions(from_clause, argument)) == set(suggestions)
     assert len(criterion_completer._get_normal_suggestions(from_clause, argument)) == len(suggestions)
 
 
-@pytest.mark.parametrize('from_clause, suggestions, argument',
-                         [([puyol.Country], ['puyol.Country.id == '], 'id = '),
-                          ([puyol.Country, puyol.University],
-                           ['puyol.Country.id == ', 'puyol.University.country_id == ', 'puyol.University.id == ', ],
-                           'id='),
-                          ([puyol.Country], ['puyol.Country.name == '],
-                           'name')])
-def test_suggest_criterion_for_kwarg(criterion_completer, from_clause, suggestions, argument):
-    criterion_completer.argument = argument
-    assert set(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == set(suggestions)
-    assert len(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == len(suggestions)
+#@pytest.mark.parametrize('from_clause, suggestions, argument',
+#                         [([puyol.Country], ['puyol.Country.id == '], 'id = '),
+#                          ([puyol.Country, puyol.University],
+#                           ['puyol.Country.id == ', 'puyol.University.country_id == ', 'puyol.University.id == ', ],
+#                           'id='),
+#                          ([puyol.Country], ['puyol.Country.name == '],
+#                           'name')])
+#def test_suggest_criterion_for_kwarg(criterion_completer, from_clause, suggestions, argument):
+#    criterion_completer.argument = argument
+#    assert set(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == set(suggestions)
+#    assert len(criterion_completer._suggest_criteria_for_kwarg(from_clause)) == len(suggestions)

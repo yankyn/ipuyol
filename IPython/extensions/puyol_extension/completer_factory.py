@@ -48,7 +48,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
             first_call = calls[0]
             arguments_to_remove = first_call.count(',')
             return ComplexCriterionCompleter(module=self.module, namespace=self.namespace,
-                                             argument=arguments_string.split(',', arguments_to_remove)[-1].strip(),
+                                             argument=arguments_string.split('(')[-1].strip(),
                                              query=query, open_calls=open_calls)
 
     def get_completer(self, arguments_string, query):

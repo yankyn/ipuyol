@@ -13,5 +13,5 @@ class PuyolLikeQueryCompleter(OrmQueryCompleter):
     def get_parser(self):
         return PuyolLikeLineParser(module=self.module, namespace=self.namespace)
 
-    def get_handler_for_function(self, function):
+    def get_factory_for_function(self, function):
         return self._function_handlers.get(function)(module=self.module, namespace=self.namespace)

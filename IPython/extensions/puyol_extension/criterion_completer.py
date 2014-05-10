@@ -16,6 +16,9 @@ class PuyolLikeQueryAnalyzer(OrmQueryAnalyzer):
         return all_classes
 
     def get_last_table(self):
+        """
+        ~`rtype`: mapper
+        """
         return self.query._q._joinpoint_zero()
 
 
@@ -65,7 +68,7 @@ class PuyolLikeExistsCriteriaAnalyzer(PuyolLikeQueryAnalyzer):
         if not self.open_calls:
             raise NotQueryException()
         last_call = self.open_calls[-1]
-        return self.get_property_from_property_string(self.get_property_string_from_call(last_call))
+        return class_mapper(self.get_property_from_property_string(self.get_property_string_from_call(last_call)))
 
 
 def get_criteria_suggestions_for_class(cls, module):
@@ -99,22 +102,34 @@ class AbstractCriterionCompleter(object):
         if self.argument:
             argument = self.argument.split(',')[-1]
             if '=' in argument:
-                return []
-            suggestions = filter(lambda x: x.startswith(argument.strip()), suggestions)
+                raise NotQueryException()
+            suggestions = filter(lambda x: x.startswith(argument.lstrip()), suggestions)
         return suggestions
 
+    def _get_working_operators(self):
+        argument = self.argument.split(',')[-1]
+        example_operators = [r'== ', r'!= ', r'>= ', r'> ']
+        if argument[-1] == ' ':
+            return example_operators
+        return [argument + ' ' + x for x in example_operators]
+
     def suggest_criteria(self):
-        if self.argument and self.argument[-1] == '.' and self.get_mapped_property(self.argument[:-1]):
+        if self.argument and self.argument[-1] == '.':
             # Looks like a column/relationship.
-            # TODO make this work.
-            mapped_property = self.get_mapped_property(self.argument[:-1])
-            suggestions = self._mapped_property_functions(mapped_property)
+            argument = self.argument[:-1].split(',')[-1].lstrip()
+            mapped_property = self.get_mapped_property(argument)
+            if not mapped_property:
+                raise NotQueryException()
+            suggestions = self._mapped_property_functions(mapped_property, argument)
+        elif self.argument and self.get_mapped_property(self.argument.split(',')[-1].lstrip()):
+            # We want to remind the user how to use criteria.
+            return self._get_working_operators()
         elif self._is_boolean_expression():
             return RedundantCriterionCompleter.suggest()
         else:
             from_clause = self.get_query_analyzer().get_from_clause()
-            if re.match('[a-zA-Z]+ ?= ?$', self.argument):
-                return []
+            if re.match('.*[a-zA-Z]+ ?= ?$', self.argument):
+                raise NotQueryException()
             else:
                 suggestions = self._get_normal_suggestions(from_clause, self.argument)
         return suggestions  # + self.get_criterion_suggestion_variants(suggestions)
@@ -123,6 +138,7 @@ class AbstractCriterionCompleter(object):
         if self._has_kwarg(self.argument):
             return self.suggest_kwarg()
         else:
+            self.argument = self.argument.split(',')[-1].lstrip()
             return self.suggest_criteria()
 
     @staticmethod
@@ -130,7 +146,7 @@ class AbstractCriterionCompleter(object):
         return re.match('(.+, ?)?[a-zA-Z]+=[^=]+', argument_string)
 
     def _get_attributes_for_kwarg(self, query):
-        mapper = class_mapper(self.get_query_analyzer().get_last_table())
+        mapper = self.get_query_analyzer().get_last_table()
         attributes = mapper.attrs
         return attributes
 
@@ -173,16 +189,18 @@ class AbstractCriterionCompleter(object):
         return map(lambda x: '~' + x, suggestions)
 
     @staticmethod
-    def _mapped_property_functions(mapped_property):
+    def _mapped_property_functions(mapped_property, string):
+        suggestions = []
         if isinstance(mapped_property, ColumnProperty):
-            return ['in_']  # TODO make a puyol function for getting these.
+            suggestions = ['in_', 'like', 'ilike']  # TODO make a puyol function for getting these.
         elif isinstance(mapped_property, RelationshipProperty):
             if mapped_property.uselist:
-                return ['any']
+                suggestions = ['any']
             else:
-                return ['has']
+                suggestions = ['has']
         else:
             raise NotQueryException()
+        return ['%s.%s(' % (string, suggestion) for suggestion in suggestions]
 
 
 class QuerySimpleCriterionCompleter(AbstractCriterionCompleter):
@@ -203,4 +221,4 @@ class ComplexCriterionCompleter(AbstractCriterionCompleter):
 class RedundantCriterionCompleter(object):
     @staticmethod
     def suggest():
-        return [' | ', ' & ']
+        return [' | (', ' & (']

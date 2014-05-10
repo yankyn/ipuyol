@@ -114,6 +114,11 @@ class AbstractCriterionCompleter(object):
         return [argument + ' ' + x for x in example_operators]
 
     def suggest_criteria(self):
+        # TODO: Make boolean operator suggestions suggest something that works.
+        # TODO: Make boolean operator suggestions work recursively, well.
+        # TODO: Make boolean operator suggestions never to override existing arguments.
+        # TODO deal with open strings.
+        # TODO deal better with open functions. IE second argument completion.
         if self.argument and self.argument[-1] == '.':
             # Looks like a column/relationship.
             argument = self.argument[:-1].split(',')[-1].lstrip()

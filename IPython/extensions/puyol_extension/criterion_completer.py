@@ -119,6 +119,7 @@ class AbstractCriterionCompleter(object):
         # TODO: Make boolean operator suggestions never to override existing arguments.
         # TODO deal with open strings.
         # TODO deal better with open functions. IE second argument completion.
+        # TODO figure out why this stops normal inner function completion. (appears to only stop join)
         if self.argument and self.argument[-1] == '.':
             # Looks like a column/relationship.
             argument = self.argument[:-1].split(',')[-1].lstrip()

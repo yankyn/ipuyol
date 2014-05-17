@@ -63,5 +63,3 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
         return '|'.join(map(lambda x: '\.' + x + '\(', allowed_functions))
 
 
-class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
-    pass

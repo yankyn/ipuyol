@@ -1,6 +1,6 @@
 from IPython.extensions.orm_extension_base.orm_completer import OrmQueryCompleter
-from IPython.extensions.puyol_extension.completer_factory import PuyolLikeGetCompleterFactory, \
-    PuyolLikeJoinCompleterFactory
+from IPython.extensions.puyol_extension.completer_factory import PuyolLikeGetCompleterFactory
+from IPython.extensions.puyol_extension.join_completer import PuyolLikeJoinCompleterFactory
 from IPython.extensions.puyol_extension.parser import PuyolLikeLineParser
 
 __author__ = 'USER'

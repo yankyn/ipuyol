@@ -25,7 +25,10 @@ class ClassJoinCompleter(AbstractJoinCompleter):
 
 
 class CriterionJoinCompleter(AbstractJoinCompleter):
-    pass
+
+    def __init__(self, argument, query, cls):
+        AbstractJoinCompleter.__init__(self, argument, query)
+        self.cls = cls
 
 
 class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):

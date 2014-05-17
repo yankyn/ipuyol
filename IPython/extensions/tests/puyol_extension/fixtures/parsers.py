@@ -2,7 +2,8 @@ import copy
 import mock
 import pytest
 from IPython.extensions.puyol_extension.completer_factory import PuyolLikeGetCompleterFactory
-from IPython.extensions.puyol_extension.criterion_completer import AbstractCriterionCompleter, PuyolLikeQueryAnalyzer
+from IPython.extensions.puyol_extension.criterion_completer import AbstractCriterionCompleter
+from IPython.extensions.puyol_extension.query_analyzer import PuyolLikeQueryAnalyzer
 import puyol
 
 __author__ = 'USER'

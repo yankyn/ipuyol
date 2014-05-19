@@ -1,20 +1,18 @@
 from IPython.extensions.orm_extension_base.orm_completer import OrmArgumentCompleterFactory
 from IPython.extensions.orm_extension_base.utils import NotQueryException
-from IPython.extensions.puyol_extension.parser import get_base_class_for_module
+from IPython.extensions.puyol_extension.parser import PuyolLikeModuleAnalyzer
 from IPython.extensions.puyol_extension.query_analyzer import PuyolLikeQueryAnalyzer
 
 __author__ = 'Nathaniel'
 
 
 class AbstractJoinCompleter(object):
-
     def __init__(self, argument, query):
         self.argument = argument
         self.query_analyzer = PuyolLikeQueryAnalyzer(query=query)
 
 
 class RelationshipJoinCompleter(AbstractJoinCompleter):
-
     def __init__(self, argument, query, cls):
         AbstractJoinCompleter.__init__(self, argument, query)
         self.cls = cls
@@ -25,19 +23,20 @@ class ClassJoinCompleter(AbstractJoinCompleter):
 
 
 class CriterionJoinCompleter(AbstractJoinCompleter):
-
     def __init__(self, argument, query, cls):
         AbstractJoinCompleter.__init__(self, argument, query)
         self.cls = cls
 
 
 class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
+    def __init__(self, *args, **kwargs):
+        OrmArgumentCompleterFactory.__init__(self, *args, **kwargs)
+        self.module_analyzer = PuyolLikeModuleAnalyzer()
 
     def _get_cls(self, cls_str):
         try:
             cls = eval(cls_str, self.namespace)
-            base = get_base_class_for_module(self.module)
-            if issubclass(cls, base):
+            if issubclass(cls, self.module_analyzer.get_base_class(self.module)):
                 return cls
         except Exception:
             return
@@ -59,7 +58,7 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
         parts = arguments.split('.')
         if len(parts) > 1:
             cls_name = '.'.join(parts[:-1])
-            argument = parts[-1]
+            argument = parts[-1].strip()
             cls = self._get_cls(cls_name)
             if cls:
                 return RelationshipJoinCompleter(argument=argument, query=query, cls=cls)

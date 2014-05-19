@@ -19,8 +19,8 @@ __author__ = 'Nathaniel'
     ('puyol.Country.get(name="test", ', ['id=', 'name=']),
     ('puyol.University.get(name="test", ', ['id=', 'name=', 'country_id=', 'country=']),
     ('puyol.University.get(name="test", cou', ['country_id=', 'country=']),
-    ('puyol.University.get(puyol.Country.name == "test"', [' & (', ' | (']),
-    ('puyol.University.get((puyol.Country.name == "test") | (puyol.Country.id == 5)', [' & (', ' | (']),
+    #('puyol.University.get(puyol.Country.name == "test"', [' & (', ' | (']),
+    #('puyol.University.get((puyol.Country.name == "test") | (puyol.Country.id == 5)', [' & (', ' | (']),
     ('puyol.University.get(puyol.Country.name == "test" | puyol.Country.id == 5', []),
     ('puyol.University.get(puyol.University.country.', ['puyol.University.country.has(']),
     ('puyol.Country.get(puyol.Country.universities.', ['puyol.Country.universities.any(']),
@@ -78,7 +78,9 @@ def test_completion_queries(db, line, expected_results):
 @pytest.mark.parametrize('line',
                          ['puyol.University.get(puyol.University.name == "test", name=', 'puyol.University.get(name=',
                           'sgasfgasf', 'puyol.Country.get(some_shit.any(', 'puyol.Country.get(puyol.Random.shit.any(',
-                          'puyol.Country.get(puyol.Country.foo.any(', 'puyol.Country.get(puyol.Country.foo.'])
+                          'puyol.Country.get(puyol.Country.foo.any(', 'puyol.Country.get(puyol.Country.foo.',
+                          'puyol.University.get(puyol.Country.name == "test"',
+                          'puyol.University.get((puyol.Country.name == "test")'])
 def test_completion_not_queries(db, line):
     namespace = copy.copy(locals())
     namespace.update(globals())

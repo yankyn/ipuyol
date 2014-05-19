@@ -13,7 +13,7 @@ QUERIES = [('mock_module.BaseMock.get()', 'mock_module.BaseMock'), ()]
 
 
 class MockOrmLineParser(OrmLineParser):
-    def _get_base_class(self):
+    def _get_base_metaclass(self):
         return mock_module.BaseMock
 
     def _get_main_query_func_name(self):

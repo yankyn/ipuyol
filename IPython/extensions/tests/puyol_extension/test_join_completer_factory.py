@@ -9,22 +9,13 @@ import puyol
 __author__ = 'Nathaniel'
 
 
-class MockModuleAnalyzer(object):
-
-    @staticmethod
-    def get_base_class(module=None):
-        return puyol.orm.base.Base
-
-
 @pytest.fixture
 def mock_query():
     return mock.Mock()
 
 @pytest.fixture
 def mock_join_completer_factory(namespace_with_direct_import, monkeypatch):
-    factory = PuyolLikeJoinCompleterFactory(module=mock_module, namespace=namespace_with_direct_import)
-    factory.module_analyzer = MockModuleAnalyzer()
-    return factory
+    return  PuyolLikeJoinCompleterFactory(module=mock_module, namespace=namespace_with_direct_import)
 
 
 @pytest.mark.parametrize('name, cls', [('puyol.Student', puyol.Student), ('Country', puyol.Country)])

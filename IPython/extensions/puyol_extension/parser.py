@@ -1,3 +1,4 @@
+from sqlalchemy.ext.declarative.api import declarative_base
 from IPython.extensions.orm_extension_base.orm_line_parser import OrmLineParser
 
 __author__ = 'USER'
@@ -5,8 +6,8 @@ __author__ = 'USER'
 
 class PuyolLikeModuleAnalyzer(object):
     @staticmethod
-    def get_base_class(module):
-        return module.orm.base.Base
+    def get_base_metaclass(module):
+        return declarative_base().__class__
 
 
 class PuyolLikeLineParser(OrmLineParser):
@@ -21,5 +22,5 @@ class PuyolLikeLineParser(OrmLineParser):
     def _get_query_function_names(cls):
         return ['get', 'refine', 'join']
 
-    def _get_base_class(self):
-        return self.module_analyzer.get_base_class(self.module)
+    def _get_base_metaclass(self):
+        return self.module_analyzer.get_base_metaclass(self.module)

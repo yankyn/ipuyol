@@ -1,4 +1,5 @@
 import copy
+import mock
 import pytest
 
 __author__ = 'Nathaniel'
@@ -12,3 +13,8 @@ def namespace_with_direct_import():
     namespace = copy.copy(namespace)
     namespace.update(locals())
     return namespace
+
+
+@pytest.fixture
+def mock_query():
+    return mock.Mock()

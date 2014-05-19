@@ -1,3 +1,4 @@
+from sqlalchemy.orm import class_mapper, RelationshipProperty
 from IPython.extensions.orm_extension_base.orm_completer import OrmArgumentCompleterFactory
 from IPython.extensions.orm_extension_base.utils import NotQueryException
 from IPython.extensions.puyol_extension.parser import PuyolLikeModuleAnalyzer
@@ -16,6 +17,18 @@ class RelationshipJoinCompleter(AbstractJoinCompleter):
     def __init__(self, argument, query, cls):
         AbstractJoinCompleter.__init__(self, argument, query)
         self.cls = cls
+
+    def suggest(self):
+        mapper = class_mapper(self.cls)
+        from_clause = self.query_analyzer.get_from_clause()
+        if not self.cls in from_clause:
+            raise NotQueryException()
+        # All relationship properties.
+        relationships = [attr for attr in mapper.attrs if isinstance(attr, RelationshipProperty)]
+        # All relationship properties that are not already joined.
+        allowed = [rel for rel in relationships if rel.mapper.entity not in from_clause]
+        # And start with the argument.
+        return [rel.key for rel in allowed if rel.key.startswith(self.argument)]
 
 
 class ClassJoinCompleter(AbstractJoinCompleter):

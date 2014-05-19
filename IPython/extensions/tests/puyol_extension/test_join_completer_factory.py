@@ -1,17 +1,11 @@
-import mock
 import pytest
 from IPython.extensions.orm_extension_base.utils import NotQueryException
 from IPython.extensions.puyol_extension.join_completer import PuyolLikeJoinCompleterFactory, CriterionJoinCompleter, ClassJoinCompleter, RelationshipJoinCompleter
 from IPython.extensions.tests.orm_extension import mock_module
-from fixtures.utils import namespace_with_direct_import
+from fixtures.utils import namespace_with_direct_import, mock_query
 import puyol
 
 __author__ = 'Nathaniel'
-
-
-@pytest.fixture
-def mock_query():
-    return mock.Mock()
 
 
 @pytest.fixture

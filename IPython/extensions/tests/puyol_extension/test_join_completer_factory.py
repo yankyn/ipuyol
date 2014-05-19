@@ -13,9 +13,10 @@ __author__ = 'Nathaniel'
 def mock_query():
     return mock.Mock()
 
+
 @pytest.fixture
-def mock_join_completer_factory(namespace_with_direct_import, monkeypatch):
-    return  PuyolLikeJoinCompleterFactory(module=mock_module, namespace=namespace_with_direct_import)
+def mock_join_completer_factory(namespace_with_direct_import):
+    return PuyolLikeJoinCompleterFactory(module=mock_module, namespace=namespace_with_direct_import)
 
 
 @pytest.mark.parametrize('name, cls', [('puyol.Student', puyol.Student), ('Country', puyol.Country)])
@@ -23,7 +24,7 @@ def test_get_cls(mock_join_completer_factory, name, cls):
     assert mock_join_completer_factory._get_cls(name) == cls
 
 
-@pytest.mark.parametrize('name', ['puyol.Stud', 'Student', 'puyol.Studenta'])
+@pytest.mark.parametrize('name', ['puyol.Stud', 'Student', 'puyol.Studenta', '5', 'object'])
 def test_get_raises_exception(mock_join_completer_factory, name):
     assert mock_join_completer_factory._get_cls(name) is None
 

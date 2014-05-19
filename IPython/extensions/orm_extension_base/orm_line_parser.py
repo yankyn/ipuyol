@@ -56,7 +56,7 @@ class OrmLineParser(object):
                 # Looks like a class, called through the module.
                 class_name = re.sub('%s\.' % self.module_name, '', string)
                 if hasattr(self.module, class_name) and isinstance(getattr(self.module, class_name),
-                                                                   self._get_base_metaclass()):
+                                                                   self._get_base_meta_class()):
                     base = self._get_query_from_class_name(class_name)
                 else:
                     raise NotQueryException()
@@ -66,7 +66,7 @@ class OrmLineParser(object):
             if re.match(r'[a-zA-Z]+\.%s.*' % self._get_main_query_func_name(), string):
                 base = self._get_query_from_query_string(string)
             else:
-                if not isinstance(getattr(self.module, string), self._get_base_metaclass()):
+                if not isinstance(getattr(self.module, string), self._get_base_meta_class()):
                     raise NotQueryException()
                 else:
                     base = self._get_query_from_class_name(string)
@@ -115,7 +115,7 @@ class OrmLineParser(object):
 
     # Abstract Private Functions
 
-    def _get_base_metaclass(self):
+    def _get_base_meta_class(self):
         raise NotImplementedError()
 
     def _get_main_query_func_name(self):

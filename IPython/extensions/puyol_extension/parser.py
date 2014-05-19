@@ -6,7 +6,7 @@ __author__ = 'USER'
 
 class PuyolLikeModuleAnalyzer(object):
     @staticmethod
-    def get_base_metaclass(module):
+    def get_base_meta_class(module):
         return declarative_base().__class__
 
 
@@ -22,5 +22,5 @@ class PuyolLikeLineParser(OrmLineParser):
     def _get_query_function_names(cls):
         return ['get', 'refine', 'join']
 
-    def _get_base_metaclass(self):
-        return self.module_analyzer.get_base_metaclass(self.module)
+    def _get_base_meta_class(self):
+        return self.module_analyzer.get_base_meta_class(self.module)

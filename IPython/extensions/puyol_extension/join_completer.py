@@ -36,7 +36,7 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
     def _get_cls(self, cls_str):
         try:
             cls = eval(cls_str, self.namespace)
-            if isinstance(cls, self.module_analyzer.get_base_metaclass(self.module)):
+            if isinstance(cls, self.module_analyzer.get_base_meta_class(self.module)):
                 return cls
         except Exception:
             return

@@ -1,6 +1,7 @@
+import re
 from sqlalchemy.orm import class_mapper, RelationshipProperty
 from IPython.extensions.orm_extension_base.orm_completer import OrmArgumentCompleterFactory
-from IPython.extensions.orm_extension_base.utils import NotQueryException
+from IPython.extensions.orm_extension_base.utils import NotQueryException, get_module_name
 from IPython.extensions.puyol_extension.parser import PuyolLikeModuleAnalyzer
 from IPython.extensions.puyol_extension.query_analyzer import PuyolLikeQueryAnalyzer
 
@@ -23,7 +24,7 @@ class RelationshipJoinCompleter(AbstractJoinCompleter):
         from_clause = self.query_analyzer.get_from_clause()
         if not self.cls in from_clause:
             raise NotQueryException()
-        # All relationship properties.
+            # All relationship properties.
         relationships = [attr for attr in mapper.attrs if isinstance(attr, RelationshipProperty)]
         # All relationship properties that are not already joined.
         allowed = [rel for rel in relationships if rel.mapper.entity not in from_clause]
@@ -32,7 +33,41 @@ class RelationshipJoinCompleter(AbstractJoinCompleter):
 
 
 class ClassJoinCompleter(AbstractJoinCompleter):
-    pass
+    def __init__(self, argument, query, base_meta_class, module):
+        AbstractJoinCompleter.__init__(self, argument, query)
+        self.base_meta_class = base_meta_class
+        self.module = module
+
+    @staticmethod
+    def class_relationships(cls):
+        mapper = class_mapper(cls)
+        targets = []
+        for attr in mapper.attrs:
+            if isinstance(attr, RelationshipProperty):
+                targets.append(attr.mapper.entity)
+        return targets
+
+    def suggest(self):
+        suggestions = []
+        module_name = get_module_name(self.module)
+        from_clause = self.query_analyzer.get_from_clause()
+        if re.match('%s\..*' % module_name, self.argument):
+            argument = self.argument.split(['.'])[:-1]
+        else:
+            argument = self.argument
+        for key, potential_join_class in self.module.__dict__.items():  # All public attributes.
+            if argument.lower() in key.lower():  # The argument matches string wise
+                if isinstance(potential_join_class, self.base_meta_class):  # All suggestions that are tables.
+                    if potential_join_class not in from_clause:  # Is not already joined.
+                        # All possible combinations for relationships.
+                        # Either the suggestion has a relationship to the from clause.
+                        # Or the from clause has a relationship to the suggestion.
+                        for cls in from_clause:
+                            if (potential_join_class in self.class_relationships(cls)) or (
+                                    cls in self.class_relationships(
+                                        potential_join_class)):
+                                suggestions.append('%s.%s' % (module_name, key))
+        return suggestions
 
 
 class CriterionJoinCompleter(AbstractJoinCompleter):
@@ -54,7 +89,14 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
         except Exception:
             return
 
+    @classmethod
+    def get_allowed_inner_functions(cls):
+        return []
+
     def get_completer(self, arguments, query):
+
+        if not self.validate_argument(arguments):
+            raise NotQueryException()
 
         if ',' in arguments:
             if arguments.count(',') > 1:
@@ -76,4 +118,6 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
             if cls:
                 return RelationshipJoinCompleter(argument=argument, query=query, cls=cls)
 
-        return ClassJoinCompleter(argument=arguments, query=query)
+        return ClassJoinCompleter(argument=arguments, query=query,
+                                  base_meta_class=self.module_analyzer.get_base_meta_class(self.module),
+                                  module=self.module)

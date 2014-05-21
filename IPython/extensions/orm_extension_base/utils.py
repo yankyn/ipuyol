@@ -10,5 +10,4 @@ class NotQueryException(Exception):
 
 
 def get_module_name(module):
-    # TODO move these to utils module.
     return module.__name__.split('.')[-1]

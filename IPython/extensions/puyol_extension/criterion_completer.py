@@ -100,7 +100,6 @@ class AbstractCriterionCompleter(object):
         return [argument + ' ' + x for x in example_operators]
 
     def suggest_criteria(self):
-        # TODO deal better with open functions. IE second argument completion.
         # TODO figure out why this stops normal inner function completion. (appears to only stop join)
         if self.argument and self.argument[-1] == '.':
             # Looks like a column/relationship.

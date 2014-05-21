@@ -50,5 +50,4 @@ class OrmArgumentCompleterFactory(object):
         # TODO validate more
         if argument.count('"') % 2 or argument.count('\'') % 2:
             return False
-        if re.match('.*\([^\)]*', argument):
-            return False
+        return True

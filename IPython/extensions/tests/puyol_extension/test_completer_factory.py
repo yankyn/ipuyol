@@ -51,7 +51,6 @@ def test_open_calls_are_ordered(calls, expected_calls):
 @pytest.mark.parametrize('line, completer_type, open_indices',
                          [(LINES[0], ComplexCriterionCompleter, {0, 1}),
                           (LINES[1], ComplexCriterionCompleter, {1}),
-                          (LINES[2], RedundantCriterionCompleter, {}),
                           (LINES[3], QuerySimpleCriterionCompleter, {}),
                           (LINES[4], QuerySimpleCriterionCompleter, {})])
 def test_completer_factory_types(mock_completer_factory, monkeypatch, line, completer_type, open_indices):

@@ -56,7 +56,6 @@ __author__ = 'Nathaniel'
      ['puyol.Country.name', 'puyol.University.name', 'puyol.Course.name']),
     ('puyol.Country.get(puyol.Country.id == 5 | puyol.Country.universities.any(puyol.University.courses.any(), na',
      ['puyol.Country.name', 'puyol.University.name']),
-    ('puyol.University.get(puyol.Country.universities.any()', [' & (', ' | (']),
     # Mixed queries
     ('puyol.Country.get().join(puyol.Country.universities).refine(puyol.University.courses.any(',
      ['puyol.Country.name', 'puyol.Country.id', 'puyol.Country.universities', 'puyol.University.id',
@@ -80,7 +79,8 @@ def test_completion_queries(db, line, expected_results):
                           'sgasfgasf', 'puyol.Country.get(some_shit.any(', 'puyol.Country.get(puyol.Random.shit.any(',
                           'puyol.Country.get(puyol.Country.foo.any(', 'puyol.Country.get(puyol.Country.foo.',
                           'puyol.University.get(puyol.Country.name == "test"',
-                          'puyol.University.get((puyol.Country.name == "test")'])
+                          'puyol.University.get((puyol.Country.name == "test")', 'puyol.Country.get("',
+                          'puyol.Country.get(", '])
 def test_completion_not_queries(db, line):
     namespace = copy.copy(locals())
     namespace.update(globals())

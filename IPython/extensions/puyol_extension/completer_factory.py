@@ -1,5 +1,6 @@
 import re
 from IPython.extensions.orm_extension_base.orm_completer import OrmArgumentCompleterFactory
+from IPython.extensions.orm_extension_base.utils import NotQueryException
 from IPython.extensions.puyol_extension.criterion_completer import QuerySimpleCriterionCompleter, \
     RedundantCriterionCompleter, ComplexCriterionCompleter
 
@@ -41,7 +42,7 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
                 return QuerySimpleCriterionCompleter(argument=arguments_string.split(',')[-1].strip(), query=query,
                                                      module=self.module, namespace=self.namespace)
             else:  # Last argument is the last call.
-                return RedundantCriterionCompleter()
+                raise NotQueryException()
         else:
             # There is an open criterion call,
             # remove all junk and pass everything after the first call to the actual completer.
@@ -52,6 +53,8 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
                                              query=query, open_calls=open_calls)
 
     def get_completer(self, arguments_string, query):
+        if not self.validate_argument(arguments_string):
+            raise NotQueryException()
         completer = self.parse_arguments(arguments_string, query)
         return completer
 

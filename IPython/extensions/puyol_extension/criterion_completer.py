@@ -100,7 +100,6 @@ class AbstractCriterionCompleter(object):
         return [argument + ' ' + x for x in example_operators]
 
     def suggest_criteria(self):
-        # TODO: make suggestion work after boolean operator.
         # TODO deal with open strings.
         # TODO deal better with open functions. IE second argument completion.
         # TODO figure out why this stops normal inner function completion. (appears to only stop join)
@@ -114,7 +113,6 @@ class AbstractCriterionCompleter(object):
         elif self.argument and self.get_mapped_property(self.argument.split(',')[-1].lstrip()):
             # We want to remind the user how to use criteria.
             return self._get_working_operators()
-        # TODO in order to make boolean operators actually work well we need to add lazy operator evaluation in puyol.
         elif self._is_boolean_expression():
             #return RedundantCriterionCompleter.suggest()
             raise NotQueryException()

@@ -80,7 +80,7 @@ def test_completion_queries(db, line, expected_results):
                           'puyol.Country.get(puyol.Country.foo.any(', 'puyol.Country.get(puyol.Country.foo.',
                           'puyol.University.get(puyol.Country.name == "test"',
                           'puyol.University.get((puyol.Country.name == "test")', 'puyol.Country.get("',
-                          'puyol.Country.get(", '])
+                          'puyol.Country.get(", ', 'puyol.Country.get(foo(a=5, ', 'puyol.Country.get(foo(name='])
 def test_completion_not_queries(db, line):
     namespace = copy.copy(locals())
     namespace.update(globals())

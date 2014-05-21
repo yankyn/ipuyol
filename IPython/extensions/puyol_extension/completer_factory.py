@@ -58,11 +58,12 @@ class PuyolLikeGetCompleterFactory(OrmArgumentCompleterFactory):
         completer = self.parse_arguments(arguments_string, query)
         return completer
 
-    def get_criterion_functions(self):
+    @classmethod
+    def get_allowed_inner_functions(cls):
         return ['any', 'has']
 
     def _get_call_split_regex(self):
-        allowed_functions = self.get_criterion_functions()
+        allowed_functions = self.get_allowed_inner_functions()
         return '|'.join(map(lambda x: '\.' + x + '\(', allowed_functions))
 
 

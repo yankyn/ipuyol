@@ -46,8 +46,17 @@ class OrmArgumentCompleterFactory(object):
         raise NotImplementedError()
 
     @classmethod
+    def get_allowed_inner_functions(cls):
+        raise NotImplementedError
+
+    @classmethod
     def validate_argument(cls, argument):
         # TODO validate more
         if argument.count('"') % 2 or argument.count('\'') % 2:
             return False
+
+        # Regexp for open parenthesis after a function that is not allowed.
+        if re.match('.*[^(' + '|'.join(cls.get_allowed_inner_functions()) + ')]\([^\)]*', argument):
+            return False
+
         return True

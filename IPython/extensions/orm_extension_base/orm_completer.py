@@ -33,10 +33,6 @@ class OrmQueryCompleter(object):
         return completer.suggest()
 
 
-class NotSupportedYetError(Exception):
-    pass
-
-
 class OrmArgumentCompleterFactory(object):
     def __init__(self, module, namespace):
         self.module = module

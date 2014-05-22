@@ -5,9 +5,22 @@ __author__ = 'USER'
 
 
 class PuyolLikeModuleAnalyzer(object):
+
+    def __init__(self, namespace, module):
+        self.namespace = namespace
+        self.module = module
+
     @staticmethod
     def get_base_meta_class(module):
         return declarative_base().__class__
+
+    def get_class(self, class_str):
+        try:
+            cls = eval(class_str, self.namespace)
+            if isinstance(cls, self.get_base_meta_class(self.module)):
+                return cls
+        except Exception:
+            return
 
 
 class PuyolLikeLineParser(OrmLineParser):

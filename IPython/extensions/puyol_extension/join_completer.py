@@ -75,18 +75,11 @@ class ClassJoinCompleter(AbstractJoinCompleter):
 
 
 class CriterionJoinCompleter(AbstractJoinCompleter):
-    class _ParameterKey(object):
-        def __init__(self, cls=None, pk=None, fk=None, key=None):
-            self.cls = cls
-            self.pk = pk
-            self.fk = fk
-            self.key = key
-
-    def __init__(self, argument, query, cls, module_analyzer, module):
+    def __init__(self, argument, query, cls, module, namespace):
         AbstractJoinCompleter.__init__(self, argument, query)
         self.cls = cls
-        self.module_analyzer = module_analyzer
         self.module = module
+        self.namespace = namespace
 
     @staticmethod
     def primary_key(cls):
@@ -95,7 +88,7 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
         for attr in properties:
             if isinstance(attr, ColumnProperty):
                 columns = attr.columns
-                if len(columns) == 0 and columns[0].primary_key:
+                if len(columns) == 1 and columns[0].primary_key:
                     return attr
 
     @staticmethod
@@ -114,19 +107,19 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
         if expression.foreign_keys:
             foreign_keys = expression.foreign_keys
             if len(foreign_keys) == 1:
-                return foreign_keys.pop()
+                return list(foreign_keys)[0]
 
     def _suggest_fk(self, argument, source_classes, target_classes):
         suggestions = []
         for source_class in source_classes:
-            foreign_key_attributes = self.foreign_keys(source_class)
-            for foreign_key_attribute in foreign_key_attributes:
-                expression = foreign_key_attribute.property.expression
+            foreign_key_properties = self.foreign_keys(source_class)
+            for foreign_key_property in foreign_key_properties:
+                expression = foreign_key_property.expression
                 foreign_key = self._get_fk_for_expression(expression)
                 for target_class in target_classes:
                     if foreign_key.references(target_class.__table__):
                         suggestion = '%s.%s.%s' % (
-                            get_module_name(self.module), self.cls.__name__, foreign_key_attribute.key)
+                            get_module_name(self.module), source_class.__name__, foreign_key_property.key)
                         if suggestion.startswith(argument):
                             suggestions.append(suggestion[len(argument):])
         return suggestions
@@ -137,11 +130,11 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
             key = pk_attr.key
         else:
             raise NotQueryException()
-        suggestion = '%s.%s.%s' % (get_module_name(self.module), self.cls.__name__, key)
+        suggestion = '%s.%s.%s' % (get_module_name(self.module), cls.__name__, key)
         if suggestion.startswith(argument):
-            return suggestion[len(argument):]
+            return [suggestion[len(argument):]]
         else:
-            raise NotQueryException()
+            return []
 
     @staticmethod
     def _get_cls_for_fk(foreign_key, from_clause):
@@ -153,10 +146,10 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
         from_clause = self.query_analyzer.get_from_clause()
         if re.match('.+==.*', self.argument):
             parts = self.argument.split('==')
-            left = parts[0]
-            right = parts[1]
+            left = parts[0].strip()
+            right = parts[1].strip()
             try:
-                left_attribute = eval(left)
+                left_attribute = eval(left, self.namespace)
             except Exception:
                 raise NotQueryException()
 
@@ -172,24 +165,25 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
                 # Either (a, a.id == b.a_id) or (a, b.id == a.b_id)
                 if left_is_joinee:
                     # (a, a.id == b.a_id)
-                    return self._suggest_fk(argument=right, source_classes=[self.cls], target_classes=from_clause)
+                    return self._suggest_fk(argument=right, source_classes=from_clause, target_classes=[self.cls])
                 else:
                     # (a, b.id == a.b_id)
-                    return self._suggest_fk(argument=right, source_classes=from_clause, target_classes=[self.cls])
+                    return self._suggest_fk(argument=right, source_classes=[self.cls], target_classes=from_clause)
             else:
                 # Either (a, a.b_id == b.id) or (a, b.a_id == a.id)
                 foreign_key = self._get_fk_for_expression(expression)
                 if not foreign_key:
                     raise NotQueryException()
 
-                if not left_is_joinee:
+                if left_is_joinee:
                     # (a, a.b_id == b.id)
-                    cls = self.cls
-                else:
-                    # (a, b.a_id == a.id)
                     cls = self._get_cls_for_fk(foreign_key, from_clause + [self.cls])
+                else:
+                    #import pdb; pdb.set_trace()
+                    # (a, b.a_id == a.id)
+                    cls = self.cls
 
-                if not cls or not foreign_key.references(cls):
+                if not cls:
                     raise NotQueryException()
 
                 return self._suggest_pk_for_cls(argument=right, cls=cls)
@@ -221,7 +215,7 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
             cls = self._get_cls(cls_name)
             if cls:
                 return CriterionJoinCompleter(argument=argument, query=query, cls=cls, module=self.module,
-                                              module_analyzer=self.module_analyzer)
+                                              namespace=self.namespace)
             else:
                 raise NotQueryException()
 

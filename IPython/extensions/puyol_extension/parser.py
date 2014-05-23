@@ -5,7 +5,6 @@ __author__ = 'USER'
 
 
 class PuyolLikeModuleAnalyzer(object):
-
     def __init__(self, namespace, module):
         self.namespace = namespace
         self.module = module
@@ -26,7 +25,7 @@ class PuyolLikeModuleAnalyzer(object):
 class PuyolLikeLineParser(OrmLineParser):
     def __init__(self, *args, **kwargs):
         OrmLineParser.__init__(self, *args, **kwargs)
-        self.module_analyzer = PuyolLikeModuleAnalyzer()
+        self.module_analyzer = PuyolLikeModuleAnalyzer(module=self.module, namespace=self.namespace)
 
     def _get_main_query_func_name(self):
         return 'get'

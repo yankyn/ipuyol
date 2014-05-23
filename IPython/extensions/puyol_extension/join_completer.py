@@ -110,33 +110,44 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
         return fks
 
     @staticmethod
-    def _attr_fks(attr):
-        if isinstance(attr, ColumnProperty):
-            return reduce(lambda x, y: x.union(y), [a.foreign_keys for a in attr.columns])
+    def _get_fk_for_expression(expression):
+        if expression.foreign_keys:
+            foreign_keys = expression.foreign_keys
+            if len(foreign_keys) == 1:
+                return foreign_keys.pop()
 
-    def _get_key_for_part(self, part):
-        pk = None
-        fk = None
+    def _suggest_fk(self, argument, source_classes, target_classes):
+        suggestions = []
+        for source_class in source_classes:
+            foreign_key_attributes = self.foreign_keys(source_class)
+            for foreign_key_attribute in foreign_key_attributes:
+                expression = foreign_key_attribute.property.expression
+                foreign_key = self._get_fk_for_expression(expression)
+                for target_class in target_classes:
+                    if foreign_key.references(target_class.__table__):
+                        suggestion = '%s.%s.%s' % (
+                            get_module_name(self.module), self.cls.__name__, foreign_key_attribute.key)
+                        if suggestion.startswith(argument):
+                            suggestions.append(suggestion[len(argument):])
+        return suggestions
 
-        parts = part.partition('.')
+    def _suggest_pk_for_cls(self, argument, cls):
+        pk_attr = self.primary_key(cls)
+        if pk_attr:
+            key = pk_attr.key
+        else:
+            raise NotQueryException()
+        suggestion = '%s.%s.%s' % (get_module_name(self.module), self.cls.__name__, key)
+        if suggestion.startswith(argument):
+            return suggestion[len(argument):]
+        else:
+            raise NotQueryException()
 
-        key = parts[-1]
-        class_string = reduce(lambda x, y: x + y, parts[-2])
-        cls = self.module_analyzer.get_class(class_string)
-
-        if not cls:
-            return self._ParameterKey(key=part)
-
-        class_primary_key = self.primary_key(cls)
-        if class_primary_key.key == key:
-            pk = class_primary_key
-
-        class_foreign_keys = self.foreign_keys(cls)
-        for class_fk in class_foreign_keys:
-            if class_fk.key == key:
-                fk = class_fk
-
-        return self._ParameterKey(cls, fk, pk, key)
+    @staticmethod
+    def _get_cls_for_fk(foreign_key, from_clause):
+        for cls in from_clause:
+            if foreign_key.references(cls.__table__):
+                return cls
 
     def suggest(self):
         from_clause = self.query_analyzer.get_from_clause()
@@ -144,47 +155,50 @@ class CriterionJoinCompleter(AbstractJoinCompleter):
             parts = self.argument.split('==')
             left = parts[0]
             right = parts[1]
+            try:
+                left_attribute = eval(left)
+            except Exception:
+                raise NotQueryException()
 
-            left_key = self._get_key_for_part(left)
-            right_key = self._get_key_for_part(right)
-
-            suggestions = []
-            if left_key.pk:
-                if right_key.cls:
-                    if right_key.fk:
-                        raise NotQueryException()
-                    for fk_prop in self.foreign_keys(right_key.cls):
-                        for fk in self._attr_fks(fk_prop):
-                            if fk.references(left_key.cls.__table__) and right_key.key in fk_prop.key:
-                                suggestions.append(fk_prop.key)
-
-                elif self.cls == left_key.cls:
-                    if get_module_name(self.module) in right_key.key:
-                        key = right_key.key.split(get_module_name(self.module))[-1]
-                    else:
-                        key = right_key.key
-                    for cls in from_clause:
-                        if key in cls.__name__.lower():
-                            suggestions.append('%s.%s.' % (get_module_name(self.module), cls.__name__))
-                else:
-                    suggestions.append('%s.%s.' % (get_module_name(self.module), self.cls.__name__))
-            elif left_key.fk:
-                fks = self._attr_fks(left_key.fk)
-                if right_key.cls:
-                    for fk in fks:
-                        if fk.references(right_key.cls.__table__):
-                            suggestions.append('%s.%s.%s' % ())
+            if left_attribute.class_ in from_clause:
+                left_is_joinee = False
+            elif left_attribute.class_ == self.cls:
+                left_is_joinee = True
             else:
                 raise NotQueryException()
 
-        else:
-            pass
+            expression = left_attribute.property.expression
+            if expression.primary_key:
+                # Either (a, a.id == b.a_id) or (a, b.id == a.b_id)
+                if left_is_joinee:
+                    # (a, a.id == b.a_id)
+                    return self._suggest_fk(argument=right, source_classes=[self.cls], target_classes=from_clause)
+                else:
+                    # (a, b.id == a.b_id)
+                    return self._suggest_fk(argument=right, source_classes=from_clause, target_classes=[self.cls])
+            else:
+                # Either (a, a.b_id == b.id) or (a, b.a_id == a.id)
+                foreign_key = self._get_fk_for_expression(expression)
+                if not foreign_key:
+                    raise NotQueryException()
+
+                if not left_is_joinee:
+                    # (a, a.b_id == b.id)
+                    cls = self.cls
+                else:
+                    # (a, b.a_id == a.id)
+                    cls = self._get_cls_for_fk(foreign_key, from_clause + [self.cls])
+
+                if not cls or not foreign_key.references(cls):
+                    raise NotQueryException()
+
+                return self._suggest_pk_for_cls(argument=right, cls=cls)
 
 
 class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
     def __init__(self, *args, **kwargs):
         OrmArgumentCompleterFactory.__init__(self, *args, **kwargs)
-        self.module_analyzer = PuyolLikeModuleAnalyzer()
+        self.module_analyzer = PuyolLikeModuleAnalyzer(module=self.module, namespace=self.namespace)
 
     def _get_cls(self, cls_str):
         return self.module_analyzer.get_class(cls_str)
@@ -206,7 +220,8 @@ class PuyolLikeJoinCompleterFactory(OrmArgumentCompleterFactory):
             argument = parts[1].strip()
             cls = self._get_cls(cls_name)
             if cls:
-                return CriterionJoinCompleter(argument=argument, query=query, cls=cls)
+                return CriterionJoinCompleter(argument=argument, query=query, cls=cls, module=self.module,
+                                              module_analyzer=self.module_analyzer)
             else:
                 raise NotQueryException()
 

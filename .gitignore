@@ -9,3 +9,9 @@
 /.idea/scopes/scope_settings.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+/.idea/*.iml
+/src/*.pyc
+/src/ipuyol.egg-info/*
+/src/ipuyol.egg-info/*.txt
+/src/ipuyol/orm_extension_base/*.pyc
+*.pyc
